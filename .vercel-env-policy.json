@@ -1,0 +1,37 @@
+{
+  "_comment": "Source-of-truth manifest for which env vars must differ between Vercel Production and Preview scopes. Source for the operator runbook in docs/live-infra-setup.md §8.3 and the future automated audit script. See issue #18 for the policy decisions backing each bucket. NOT directly consumed by the app or Vercel — this file is documentation + tooling input.",
+
+  "scopeSpecific": [
+    "SUPABASE_URL",
+    "SUPABASE_SERVICE_ROLE_KEY",
+    "SUPABASE_ANON_KEY",
+    "NEXT_PUBLIC_SUPABASE_URL",
+    "AUTH_TOKEN_SECRET",
+    "FEEDBACK_RESPONDENT_SECRET",
+    "TALLY_SIGNING_SECRET",
+    "RESEND_API_KEY",
+    "RESEND_FROM_EMAIL",
+    "EMAIL_ENVIRONMENT",
+    "CRON_SECRET",
+    "UPSTASH_REDIS_REST_URL",
+    "UPSTASH_REDIS_REST_TOKEN"
+  ],
+
+  "previewUnsetPreferred": [
+    "NEXT_PUBLIC_SITE_URL"
+  ],
+
+  "sharedAllowed": [
+    "DRAFT_PREVIEW",
+    "STAGING_EMAIL_ALLOWED_DOMAINS",
+    "STAGING_DATA_RETENTION_DAYS",
+    "NEXT_PUBLIC_SUPABASE_ASSETS_BUCKET"
+  ],
+
+  "_notes": {
+    "scopeSpecific": "Production scope uses production values; Preview scope uses staging values. Same value in both scopes is the failure mode this manifest exists to prevent. Examples: AUTH_TOKEN_SECRET shared = cross-scope cookie validity; RESEND_API_KEY shared = staging emails sent from production-keyed account; SUPABASE_SERVICE_ROLE_KEY shared = staging writes hit production DB.",
+    "previewUnsetPreferred": "NEXT_PUBLIC_SITE_URL on Preview scope causes magic-link emails from preview deploys to point at the production host instead of the preview alias. Cookie-domain mismatch when the user clicks. Unset on Preview means lib/env.ts falls back to https://$VERCEL_URL, which is the actual preview alias. Fix: delete the env var from Preview scope.",
+    "sharedAllowed": "Same value across both scopes is intentional. DRAFT_PREVIEW=1 on both is correct (lib/preview.ts:29 short-circuits on production via VERCEL_ENV check). STAGING_EMAIL_ALLOWED_DOMAINS doesn't matter on Production scope but having it set is harmless. STAGING_DATA_RETENTION_DAYS could be Preview-only, but having it on Production scope is also harmless because the cron-purge code path keys off environment column in retention_log, not the env var alone.",
+    "audit_script_intent": "When the audit lands (deferred per #18 Decision #5), it computes sha256 of each scopeSpecific value in both scopes. Fail if hashes match. For previewUnsetPreferred: fail if Preview scope has the var set. For sharedAllowed: no assertion. Output is hash comparisons + pass/fail summary; never logs raw secret values."
+  }
+}

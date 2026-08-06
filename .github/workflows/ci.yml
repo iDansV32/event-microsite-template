@@ -1,0 +1,48 @@
+name: CI
+
+# Runs on every PR targeting main plus direct pushes to main. The two-trigger
+# setup means both the normal PR flow and any hotfix/admin push get verified.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  checks:
+    name: typecheck / lint / build / audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          # 20 is the current LTS. Next 15's own floor is 18.18+; we run on
+          # 18.20.x locally. 20 keeps CI on the ecosystem's front foot
+          # without blocking dev on 18.
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        # Catches runtime contract violations tsc misses: Zod validation in
+        # the event registry, generateStaticParams, middleware compilation.
+        run: npm run build
+
+      - name: Audit (fail on high+ severity)
+        # Locks in the "0 high-severity advisories" bar we hit in the Next
+        # 15 migration. If a new CVE lands in a direct or transitive dep,
+        # this step fails and the PR is blocked until someone responds.
+        run: npm audit --audit-level=high

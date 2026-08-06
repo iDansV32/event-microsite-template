@@ -1,0 +1,378 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   Design Tokens + Base Styles
+   ============================================================ */
+
+:root {
+  /* Base tokens — used as defaults for any page OUTSIDE /e/[slug] (landing,
+     internal surfaces). On /e/[slug] pages the event layout renders an inline
+     <style> tag that re-declares these same properties at :root with the
+     event's values (see lib/theme.ts → themeToRootCSS); the override scopes
+     via mount/unmount of the layout. */
+  --bg:          #F5F0E8;   /* cream */
+  --paper:       #FBF7F0;
+  --ink:         #1C2A24;   /* deep forest */
+  --ink-muted:   #4A5A50;
+
+  /* Accents */
+  --terracotta:  #F15A29;
+  --clay:        #D9B58C;
+  --olive:       #5A6848;
+  --teal:        #2B7A7B;
+  --navy:        #0F1F2E;
+  --cream:       #F1F3F2;
+
+  /* Derived tokens. These are computed from the base vars above via
+     color-mix(). IMPORTANT: CSS var() substitution inside a custom-property
+     value is resolved at the DEFINING element's computed-value time, not at
+     the use site. That means descendants overriding --ink do NOT
+     automatically re-derive --ink-70 from this block — they inherit the
+     root-resolved value. The /e/[slug] layout therefore re-emits both the
+     base tokens AND these derived tokens per event (see lib/theme.ts); the
+     block below is only a non-event fallback. */
+  --ink-70:      color-mix(in srgb, var(--ink) 70%, transparent);
+  --ink-55:      color-mix(in srgb, var(--ink) 55%, transparent);
+  --ink-40:      color-mix(in srgb, var(--ink) 40%, transparent);
+  --ink-12:      color-mix(in srgb, var(--ink) 12%, transparent);
+  --ink-06:      color-mix(in srgb, var(--ink)  6%, transparent);
+  --bg-deep:         color-mix(in srgb, var(--bg)  92%, #000 8%);
+  --terracotta-deep: color-mix(in srgb, var(--terracotta) 85%, #000 15%);
+  --tint-clay:   color-mix(in srgb, var(--clay) 45%, var(--bg) 55%);
+  --tint-teal:   color-mix(in srgb, var(--teal) 25%, var(--bg) 75%);
+  --tint-blush:  color-mix(in srgb, var(--terracotta) 22%, var(--bg) 78%);
+  --tint-fog:    color-mix(in srgb, var(--ink) 10%, var(--bg) 90%);
+
+  /* State tokens — intentionally NOT theme-overridable; these carry semantic
+     weight (red means bad, amber means warn, etc.) that a brand swap should
+     not be able to reassign. */
+  --danger:      #9B3A28;
+  --warn:        #B87333;
+  --success:     #5A6848;
+
+  /* Type — families set via next/font variables */
+  --f-serif:   var(--font-serif), 'Source Serif 4', Georgia, serif;
+  --f-sans:    var(--font-sans), 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --f-script:  var(--font-script), 'Caveat', cursive;
+  --f-mono:    var(--font-mono), 'JetBrains Mono', ui-monospace, Menlo, monospace;
+
+  /* Scale */
+  --t-xs: 11px; --t-sm: 13px; --t-base: 15px; --t-md: 17px;
+  --t-lg: 20px; --t-xl: 26px; --t-2xl: 36px; --t-3xl: 52px;
+  --t-4xl: 76px; --t-5xl: 108px;
+
+  /* Space */
+  --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-5: 24px;
+  --s-6: 32px; --s-7: 48px; --s-8: 72px; --s-9: 112px;
+
+  /* Radii */
+  --r-sm: 6px; --r-md: 12px; --r-lg: 18px; --r-pill: 999px;
+
+  /* Max widths */
+  --w-wide: 1280px; --w-reg: 1080px; --w-read: 720px;
+}
+
+html, body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--f-sans);
+  font-size: var(--t-base);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  /* Dot texture derived from the current --ink so it re-themes with the
+     event palette. Very subtle — 2.5% / 1.8% opacity. */
+  background-image:
+    radial-gradient(color-mix(in srgb, var(--ink) 2.5%, transparent) 1px, transparent 1px),
+    radial-gradient(color-mix(in srgb, var(--ink) 1.8%, transparent) 1px, transparent 1px);
+  background-size: 3px 3px, 7px 7px;
+  background-position: 0 0, 1px 1px;
+}
+
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+img { max-width: 100%; display: block; }
+
+/* ---------- Type utilities ---------- */
+.serif { font-family: var(--f-serif); font-weight: 400; font-style: normal; letter-spacing: -0.01em; }
+.script { font-family: var(--f-script); font-weight: 500; }
+.mono { font-family: var(--f-mono); font-weight: 400; letter-spacing: 0; }
+.sans { font-family: var(--f-sans); }
+
+.display {
+  font-family: var(--f-serif);
+  font-weight: 300;
+  letter-spacing: -0.025em;
+  line-height: 0.94;
+}
+
+.eyebrow {
+  font-family: var(--f-sans);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: var(--ink-55);
+}
+.eyebrow-accent { color: var(--terracotta); }
+
+/* ---------- Layout ---------- */
+.container-ed { max-width: var(--w-wide); margin: 0 auto; padding: 0 32px; }
+.container-reg { max-width: var(--w-reg); margin: 0 auto; padding: 0 32px; }
+.container-read { max-width: var(--w-read); margin: 0 auto; padding: 0 32px; }
+
+.divider { height: 1px; background: var(--ink-12); border: 0; margin: 0; }
+.hairline { border-top: 1px solid var(--ink-12); }
+
+/* ---------- Buttons ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 10px; padding: 14px 24px; border-radius: var(--r-pill);
+  font-family: var(--f-sans); font-size: 14px; font-weight: 500;
+  letter-spacing: 0.01em; transition: all 0.2s ease;
+  cursor: pointer; border: 1px solid transparent; line-height: 1;
+}
+.btn-primary { background: var(--terracotta); color: #FBF7F0; }
+.btn-primary:hover { background: var(--terracotta-deep); }
+.btn-ghost { background: transparent; border: 1px solid var(--ink-12); color: var(--ink); }
+.btn-ghost:hover { background: var(--ink-06); }
+.btn-dark { background: var(--ink); color: var(--bg); }
+.btn-dark:hover { background: var(--navy); }
+.btn-link {
+  color: var(--ink); text-decoration: none;
+  border-bottom: 1px solid var(--ink); padding-bottom: 2px;
+  font-size: 14px; font-weight: 500;
+}
+.btn-small { padding: 9px 16px; font-size: 13px; }
+.btn[disabled] { cursor: not-allowed; }
+
+/* ---------- Cards & panels ---------- */
+.card { background: var(--paper); border: 1px solid var(--ink-12); border-radius: var(--r-lg); padding: 32px; }
+.card-plain { background: var(--paper); border-radius: var(--r-lg); padding: 32px; }
+.tile { background: var(--paper); border: 1px solid var(--ink-12); border-radius: var(--r-md); padding: 24px; }
+
+/* ---------- Imagery placeholders ---------- */
+.img-ph {
+  position: relative; overflow: hidden; border-radius: var(--r-lg);
+  background: linear-gradient(135deg, var(--clay) 0%, var(--terracotta) 100%);
+  display: flex; align-items: flex-end; justify-content: flex-start;
+  padding: 20px; isolation: isolate;
+}
+.img-ph::before {
+  content: ''; position: absolute; inset: 0;
+  background-image: repeating-linear-gradient(45deg, rgba(251,247,240,0.06) 0px, rgba(251,247,240,0.06) 1px, transparent 1px, transparent 14px);
+  z-index: 0;
+}
+.img-ph::after {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 30% 20%, rgba(251,247,240,0.18), transparent 55%);
+  z-index: 0;
+}
+.img-ph > * { position: relative; z-index: 1; }
+.img-ph-label {
+  font-family: var(--f-mono); font-size: 10.5px;
+  letter-spacing: 0.1em; color: rgba(251,247,240,0.82);
+  text-transform: lowercase; background: rgba(28,42,36,0.35);
+  padding: 4px 9px; border-radius: 3px; backdrop-filter: blur(4px);
+}
+.img-ocean   { background: linear-gradient(160deg, #4A9BA3 0%, #2B7A7B 55%, #1C4A56 100%); }
+.img-palms   { background: linear-gradient(170deg, #D9B58C 0%, #8A9668 45%, #3D4A36 100%); }
+.img-sunset  { background: linear-gradient(180deg, #F5C091 0%, #F15A29 55%, #8C2F0E 100%); }
+.img-pool    { background: linear-gradient(165deg, #C7DDDD 0%, #6BA7AA 50%, #2B7A7B 100%); }
+.img-sand    { background: linear-gradient(175deg, #F0DED0 0%, #D9B58C 55%, #8A6E4B 100%); }
+.img-night   { background: linear-gradient(175deg, #2A4A5A 0%, #1C2A36 50%, #0A1420 100%); }
+
+/* ---------- Forms ---------- */
+.input {
+  width: 100%; padding: 14px 16px;
+  font-family: var(--f-sans); font-size: 15px;
+  color: var(--ink); background: var(--paper);
+  border: 1px solid var(--ink-12); border-radius: var(--r-md);
+  outline: none; transition: border-color 0.18s ease;
+}
+.input::placeholder { color: var(--ink-40); }
+.input:focus { border-color: var(--terracotta); background: #FFFFFF; }
+
+.label {
+  display: block; font-size: 12px; font-weight: 500;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--ink-55); margin-bottom: 8px;
+}
+
+select.input {
+  appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--ink-55) 50%),
+    linear-gradient(135deg, var(--ink-55) 50%, transparent 50%);
+  background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  padding-right: 40px;
+}
+
+/* ---------- Utility ---------- */
+.ed-flex { display: flex; }
+.ed-grid { display: grid; }
+.items-baseline { align-items: baseline; }
+.wrap { flex-wrap: wrap; }
+.muted { color: var(--ink-55); }
+.muted-strong { color: var(--ink-70); }
+
+.tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 12px; border-radius: var(--r-pill);
+  font-size: 11px; font-weight: 500;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  background: var(--ink-06); color: var(--ink-70);
+  border: 1px solid var(--ink-12);
+}
+.tag-accent { background: rgba(241,90,41,0.10); color: var(--terracotta-deep); border-color: rgba(241,90,41,0.28); }
+.tag-teal { background: rgba(43,122,123,0.10); color: var(--teal); border-color: rgba(43,122,123,0.25); }
+.tag-danger { background: rgba(155,58,40,0.10); color: var(--danger); border-color: rgba(155,58,40,0.25); }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-up { animation: fadeUp 0.5s ease both; }
+
+@keyframes pageIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.page-in { animation: pageIn 0.35s ease; }
+
+.rule {
+  display: flex; align-items: center; gap: 16px;
+  color: var(--ink-55); font-size: 11px;
+  letter-spacing: 0.22em; text-transform: uppercase;
+}
+.rule::before, .rule::after {
+  content: ''; flex: 1; height: 1px; background: var(--ink-12);
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--ink-12); border-radius: 5px; }
+::-webkit-scrollbar-thumb:hover { background: var(--ink-40); }
+
+:focus-visible {
+  outline: 2px solid var(--terracotta);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.grid-2 { grid-template-columns: 1fr 1fr; }
+.grid-3 { grid-template-columns: repeat(3, 1fr); }
+.grid-4 { grid-template-columns: repeat(4, 1fr); }
+
+/* ---------- Welcome gate responsive shell ---------- */
+.welcome-split {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  background: var(--ink);
+}
+.welcome-hero-pane {
+  position: relative;
+  overflow: hidden;
+  min-height: 100vh;
+}
+.welcome-form-pane {
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+  position: relative;
+}
+
+/* ---------- Hotel photo mosaic responsive ---------- */
+.hotel-mosaic {
+  display: grid;
+  grid-template-columns: 5fr 4fr 3fr;
+  grid-template-rows: 280px 280px;
+  gap: 12px;
+}
+
+/* ---------- Responsive stacking helper ---------- */
+.stack-mobile { display: grid; }
+
+/* ---------- Horizontal scroll nav on mobile ---------- */
+.nav-scroll { overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; }
+.nav-scroll::-webkit-scrollbar { display: none; }
+.nav-scroll > * { flex-shrink: 0; white-space: nowrap; }
+
+@media (max-width: 900px) {
+  .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+  :root { --t-4xl: 48px; --t-5xl: 64px; --t-3xl: 32px; --t-2xl: 28px; }
+
+  .stack-mobile { grid-template-columns: 1fr !important; gap: 32px !important; }
+
+  .welcome-split {
+    grid-template-columns: 1fr;
+    grid-template-rows: 280px 1fr;
+    min-height: auto;
+  }
+  .welcome-hero-pane { min-height: 280px; }
+  .welcome-form-pane { padding: 32px 20px 48px; }
+
+  .hotel-mosaic {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+  }
+  .hotel-mosaic > * {
+    grid-column: auto !important;
+    grid-row: auto !important;
+    height: 240px !important;
+  }
+
+  /* Tighten inner padding of big sections so the magazine feel survives on phones */
+  .section-pad-top    { padding-top: 40px !important; }
+  .section-pad-bottom { padding-bottom: 48px !important; }
+
+  /* Agenda day view */
+  .agenda-day-intro { position: static !important; }
+  .agenda-day-intro h2 { font-size: 64px !important; }
+  .agenda-day-tabs button { min-width: 0 !important; flex: 1 1 140px; }
+
+  /* Nav — hide visitor name on mobile, keep just the avatar chip */
+  .nav-visitor-name { display: none !important; }
+
+  /* Planner roster/table — horizontal scroll on narrow screens */
+  .planner-table-scroll { overflow-x: auto; }
+  .planner-table-scroll > * { min-width: 720px; }
+
+  /* Overview Important-dates row — compact on mobile */
+  .date-row {
+    grid-template-columns: 110px 1fr !important;
+    gap: 16px !important;
+  }
+  .date-row > :nth-child(3) { display: none !important; }
+
+  /* Overview countdown card */
+  .countdown-card { padding: 32px 24px !important; }
+}
+
+/* Desktop nav-visitor baseline */
+.nav-visitor {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: flex-end;
+  min-width: 140px;
+}
+@media (max-width: 640px) {
+  .nav-visitor { min-width: 0; }
+}
+
+@media (max-width: 640px) {
+  .container-ed, .container-reg, .container-read {
+    padding: 0 20px;
+  }
+}
