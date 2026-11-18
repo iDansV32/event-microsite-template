@@ -41,8 +41,15 @@ jobs:
         # the event registry, generateStaticParams, middleware compilation.
         run: npm run build
 
-      - name: Audit (fail on high+ severity)
-        # Locks in the "0 high-severity advisories" bar we hit in the Next
-        # 15 migration. If a new CVE lands in a direct or transitive dep,
-        # this step fails and the PR is blocked until someone responds.
-        run: npm audit --audit-level=high
+      - name: Audit production deps (fail on high+ severity)
+        # Locks in the "0 high-severity advisories" bar for everything that
+        # ships: if a new CVE lands in a production dependency (direct or
+        # transitive), this step fails and the PR is blocked until someone
+        # responds.
+        #
+        # Dev-only tooling (ESLint, Tailwind's build-time file watcher) is
+        # left out with --omit=dev: it never reaches the deployed app, and
+        # advisories there can have no fixed release at all (picomatch's
+        # ReDoS advisory covered every published version), which would
+        # otherwise block every PR. Run `npm audit` locally to see them.
+        run: npm audit --omit=dev --audit-level=high
