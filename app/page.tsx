@@ -10,23 +10,11 @@ export default function Home() {
       }}
     >
       <div style={{ maxWidth: 560, textAlign: "center" }}>
-        <div className="eyebrow">Event microsite platform</div>
-        <h1
-          className="display"
-          style={{ fontSize: "clamp(44px, 8vw, 72px)", marginTop: 12, lineHeight: 0.95 }}
-        >
-          You need an <em style={{ fontStyle: "italic" }}>event link</em>.
+        <div className="kicker">Event microsite platform</div>
+        <h1 className="h1" style={{ marginTop: 10 }}>
+          You need an event link.
         </h1>
-        <p
-          className="serif"
-          style={{
-            marginTop: 20,
-            color: "var(--ink-70)",
-            fontStyle: "italic",
-            lineHeight: 1.55,
-            fontSize: 18,
-          }}
-        >
+        <p className="lede" style={{ marginTop: 18, marginInline: "auto" }}>
           This domain hosts individual event microsites. If you&rsquo;re
           looking for your event, ask your organizer for the direct link.
         </p>

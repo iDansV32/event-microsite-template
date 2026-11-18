@@ -18,111 +18,82 @@ export function Footer({
 }) {
   const base = `/e/${slug}`;
   const links = QUICK_LINKS.filter((l) => enabledSections.includes(l.key));
-  const cityShort = content.venue.cityShort ?? content.venue.city;
   const slack = content.contact?.slackChannel;
   const supportEmail = content.contact?.supportEmail;
 
   return (
-    <footer
-      style={{
-        marginTop: 120,
-        background: "var(--ink)",
-        color: "var(--bg)",
-        padding: "80px 0 48px",
-      }}
-    >
-      <div className="container-ed">
-        <div
-          className="ed-grid"
-          style={{
-            gridTemplateColumns: "1.5fr 1fr 1fr 1fr",
-            gap: 48,
-            alignItems: "start",
-          }}
-        >
+    <footer style={{ borderTop: "1px solid var(--line)" }}>
+      <div
+        className="container"
+        style={{
+          paddingTop: 32,
+          paddingBottom: 32,
+          display: "flex",
+          flexWrap: "wrap",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          gap: 24,
+          fontSize: 14,
+          lineHeight: 1.6,
+          color: "var(--ink-muted)",
+        }}
+      >
+        <div style={{ flex: "1 1 320px" }}>
           <div>
-            <div
-              className="serif"
-              style={{ fontSize: 44, lineHeight: 1, fontWeight: 300, letterSpacing: "-0.02em" }}
-            >
-              See you in
-              <br />
-              <em style={{ fontStyle: "italic", color: "var(--clay)" }}>{cityShort}.</em>
-            </div>
-            <div
-              className="script"
-              style={{
-                fontSize: 32,
-                color: "var(--clay)",
-                marginTop: 18,
-                transform: "rotate(-2deg)",
-                display: "inline-block",
-              }}
-            >
-              ~ see you soon
-            </div>
-          </div>
-          <div>
-            <div className="eyebrow" style={{ color: "rgba(245,240,232,0.55)" }}>
-              Event
-            </div>
-            <div style={{ marginTop: 14, lineHeight: 1.9, fontSize: 14 }}>
-              <div>{content.dates.display}</div>
-              <div style={{ opacity: 0.7 }}>{content.venue.name}</div>
-              {content.venue.neighborhood && (
-                <div style={{ opacity: 0.7 }}>{content.venue.neighborhood}</div>
-              )}
-            </div>
+            <span style={{ color: "var(--ink)", fontWeight: 600 }}>
+              {content.brand.shortName}
+            </span>
+            {" · "}
+            {content.dates.display}
+            {" · "}
+            {content.venue.name}
           </div>
           {(slack || supportEmail) && (
-            <div>
-              <div className="eyebrow" style={{ color: "rgba(245,240,232,0.55)" }}>
-                Questions
-              </div>
-              <div style={{ marginTop: 14, lineHeight: 1.9, fontSize: 14 }}>
-                {slack && (
-                  <div>
-                    Slack:{" "}
-                    <span style={{ color: "var(--clay)" }}>{slack}</span>
-                  </div>
-                )}
-                {supportEmail && (
-                  <div style={{ opacity: 0.7 }}>{supportEmail}</div>
-                )}
-              </div>
-            </div>
-          )}
-          {links.length > 0 && (
-            <div>
-              <div className="eyebrow" style={{ color: "rgba(245,240,232,0.55)" }}>
-                Quick links
-              </div>
-              <div style={{ marginTop: 14, lineHeight: 1.9, fontSize: 14 }}>
-                {links.map((l) => (
-                  <div key={l.key}>
-                    <Link href={`${base}/${l.href}`} style={{ opacity: 0.85 }}>
-                      {l.label}
-                    </Link>
-                  </div>
-                ))}
-              </div>
+            <div style={{ marginTop: 4 }}>
+              Questions?{" "}
+              {slack && (
+                <span style={{ color: "var(--ink)", fontWeight: 500 }}>{slack}</span>
+              )}
+              {slack && supportEmail && " · "}
+              {supportEmail && (
+                <a
+                  href={`mailto:${supportEmail}`}
+                  style={{ color: "var(--ink)", fontWeight: 500 }}
+                >
+                  {supportEmail}
+                </a>
+              )}
             </div>
           )}
         </div>
-        <div
-          style={{
-            marginTop: 64,
-            paddingTop: 24,
-            borderTop: "1px solid rgba(245,240,232,0.12)",
-            display: "flex",
-            justifyContent: "space-between",
-            fontSize: 12,
-            color: "rgba(245,240,232,0.55)",
-          }}
-        >
-          <div>© {new Date().getFullYear()} {content.brand.client}</div>
-          <div>Made with care by the Events team</div>
-        </div>
+        {links.length > 0 && (
+          <nav aria-label="Footer" style={{ display: "flex", flexWrap: "wrap", gap: "4px 20px" }}>
+            {links.map((l) => (
+              <Link
+                key={l.key}
+                href={`${base}/${l.href}`}
+                style={{ color: "var(--ink)", fontWeight: 500 }}
+              >
+                {l.label}
+              </Link>
+            ))}
+          </nav>
+        )}
+      </div>
+      <div
+        className="container"
+        style={{
+          paddingBottom: 28,
+          display: "flex",
+          flexWrap: "wrap",
+          justifyContent: "space-between",
+          gap: 8,
+          fontSize: 13,
+          color: "var(--ink-muted)",
+        }}
+      >
+        <div>© {new Date().getFullYear()} {content.brand.client}</div>
+        <div>Made with care by the Events team</div>
       </div>
     </footer>
   );

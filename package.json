@@ -12,7 +12,7 @@
     "@supabase/supabase-js": "^2.78.0",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.37.0",
-    "next": "15.5.22",
+    "next": "15.5.29",
     "react": "19.1.1",
     "react-dom": "19.1.1",
     "server-only": "^0.0.1",

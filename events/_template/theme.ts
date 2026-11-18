@@ -1,21 +1,24 @@
 import type { z } from "zod";
 import type { Theme } from "@/lib/schemas";
 
+// Default palette for new events: white ground, deep navy text, cool slate
+// neutrals and one accent. `terracotta` is the schema's accent slot — swap
+// it for the client's brand color (keep white text on it at 4.5:1 or more).
 export const theme = {
   colors: {
-    bg: "#F5F0E8",
-    paper: "#FBF7F0",
-    ink: "#1C2A24",
-    inkMuted: "#4A5A50",
-    terracotta: "#F15A29",
-    clay: "#C85A3F",
-    olive: "#7A8A5C",
-    teal: "#2D7280",
-    navy: "#1C3A4A",
-    cream: "#F1F3F2",
+    bg: "#FFFFFF",
+    paper: "#F5F6FA",
+    ink: "#0E1325",
+    inkMuted: "#545B6E",
+    terracotta: "#5B4CF0",
+    clay: "#E9E7F8",
+    olive: "#1F7A5A",
+    teal: "#2563EB",
+    navy: "#0E1325",
+    cream: "#F5F6FA",
   },
   fonts: {
-    display: "source-serif-4",
+    display: "inter",
     body: "inter",
   },
   logo: {},

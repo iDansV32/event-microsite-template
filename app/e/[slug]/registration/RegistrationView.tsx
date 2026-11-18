@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState, type CSSProperties, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Icon } from "@/components/Icon";
+import { PageHeader } from "@/components/PageHeader";
 import { formatDateTime } from "@/lib/format";
 
 /**
@@ -51,6 +53,13 @@ export interface ExistingRsvp {
   arrivalNote: string;
   emergencyContact: string;
   updatedAt: string;
+}
+
+/** Per-event rates shown in the "At a glance" panel (all optional). */
+export interface RegistrationRates {
+  plusOne?: number;
+  extensionEmployee?: number;
+  extensionPlusOne?: number;
 }
 
 interface Form {
@@ -103,6 +112,11 @@ export function RegistrationView(props: {
   eventShortName: string;
   cityShort: string;
   slackChannel?: string;
+  datesDisplay: string;
+  venueName: string;
+  rates?: RegistrationRates;
+  supportEmail?: string;
+  faqEnabled: boolean;
 }) {
   const router = useRouter();
   const base = `/e/${props.slug}`;
@@ -195,62 +209,59 @@ export function RegistrationView(props: {
     return <RegistrationClosed base={base} eventShortName={props.eventShortName} />;
   }
 
+  const glance = (
+    <AtAGlance
+      email={props.email}
+      datesDisplay={props.datesDisplay}
+      venueName={props.venueName}
+      closesDisplay={props.closesDisplay}
+      rates={props.rates}
+      slackChannel={props.slackChannel}
+      supportEmail={props.supportEmail}
+      faqHref={props.faqEnabled ? `${base}/faq` : undefined}
+    />
+  );
+
   if (isSubmitted) {
     const declined = form.attending === "no";
     return (
-      <Submitted
-        base={base}
-        cityShort={props.cityShort}
-        submittedAt={submittedAt}
-        declined={declined}
-        onEdit={editAgain}
-      />
+      <RegistrationShell aside={glance}>
+        <Submitted
+          base={base}
+          cityShort={props.cityShort}
+          submittedAt={submittedAt}
+          declined={declined}
+          onEdit={editAgain}
+        />
+      </RegistrationShell>
     );
   }
 
   const canContinueStep0 = form.attending !== null;
 
   return (
-    <div className="page-in">
-      <div className="container-reg" style={{ paddingTop: 72, paddingBottom: 120 }}>
-        <div
-          className="ed-flex items-center"
-          style={{ marginBottom: 48, justifyContent: "space-between", gap: 24, flexWrap: "wrap" }}
-        >
-          <div>
-            <div className="eyebrow eyebrow-accent">
-              {props.eventShortName}
-            </div>
-            <h1
-              className="display"
-              style={{
-                fontSize: "clamp(40px, 10vw, 68px)",
-                marginTop: 12,
-                letterSpacing: "-0.03em",
-                lineHeight: 0.95,
-              }}
-            >
-              Your <em style={{ fontStyle: "italic" }}>RSVP.</em>
-            </h1>
-          </div>
-          <div
-            className="mono"
-            style={{ fontSize: 11, color: "var(--ink-55)", letterSpacing: "0.1em" }}
-          >
-            {form.attending === "no" ? "STEP 1 / 1" : `STEP ${step + 1} / 3`}
-          </div>
+    <RegistrationShell
+      lede={
+        props.closesDisplay
+          ? `Registration is open \u2014 please submit by ${props.closesDisplay}.`
+          : "Registration is open."
+      }
+      aside={glance}
+    >
+      <div className="card card-lg">
+        <div className="hint" style={{ fontWeight: 500 }}>
+          {form.attending === "no" ? "Step 1 of 1" : `Step ${step + 1} of 3`}
         </div>
-
-        <div className="ed-flex" style={{ marginBottom: 48, gap: 8 }}>
+        <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
           {[0, 1, 2].map((i) => (
             <div
               key={i}
               style={{
                 flex: 1,
-                height: 3,
-                borderRadius: 2,
-                background: i <= step ? "var(--terracotta)" : "var(--ink-12)",
-                transition: "background 0.3s",
+                height: 4,
+                borderRadius: 999,
+                background: i <= step ? "var(--accent)" : "var(--line)",
+                transition: "background-color 0.3s",
                 opacity: form.attending === "no" && i > 0 ? 0.3 : 1,
               }}
             />
@@ -260,340 +271,284 @@ export function RegistrationView(props: {
         {submitError && (
           <div
             role="alert"
-            style={{
-              marginBottom: 24,
-              padding: "14px 18px",
-              background: "color-mix(in srgb, var(--danger) 10%, transparent)",
-              border:
-                "1px solid color-mix(in srgb, var(--danger) 30%, transparent)",
-              borderRadius: 12,
-              fontSize: 14,
-              color: "var(--danger)",
-              lineHeight: 1.55,
-            }}
+            className="callout callout-danger"
+            style={{ marginTop: 24 }}
           >
-            {submitError}
+            <Icon name="alert" size={20} style={{ marginTop: 1 }} />
+            <span>{submitError}</span>
           </div>
         )}
 
         {step === 0 && (
-          <div className="page-in">
-            <h2
-              className="serif"
-              style={{
-                fontSize: 32,
-                fontWeight: 400,
-                letterSpacing: "-0.01em",
-                marginBottom: 12,
-              }}
-            >
-              Will you join us
-              {props.firstName
-                ? (
-                  <>
-                    ,{" "}
-                    <em style={{ fontStyle: "italic" }}>{props.firstName}?</em>
-                  </>
-                )
-                : "?"}
+          <div className="page-in" style={{ marginTop: 32 }}>
+            <h2 id="reg-attending-title" style={STEP_TITLE}>
+              Will you join us{props.firstName ? `, ${props.firstName}?` : "?"}
             </h2>
-            <p
-              className="muted"
-              style={{
-                fontSize: 16,
-                lineHeight: 1.55,
-                marginBottom: 40,
-                maxWidth: 560,
-              }}
-            >
+            <p className="body" style={STEP_INTRO}>
               Attendance is expected for all team members. If something&rsquo;s
               blocking you, let&rsquo;s still hear from you.
             </p>
-            <div className="ed-grid grid-2" style={{ gap: 16 }}>
-              <RSVPCard
+            <div
+              role="group"
+              aria-labelledby="reg-attending-title"
+              style={{ ...CHOICE_ROW, marginTop: 20 }}
+            >
+              <ChoiceCard
                 active={form.attending === "yes"}
                 onClick={() => update("attending", "yes")}
                 title="Count me in"
-                script="yes!"
                 detail={`I'll be there for ${props.eventShortName}.`}
-                tint="var(--tint-clay)"
               />
-              <RSVPCard
+              <ChoiceCard
                 active={form.attending === "no"}
                 onClick={() => update("attending", "no")}
                 title="I can't make it"
-                script="sorry—"
                 detail="Let me flag a conflict or scheduling issue with the team."
-                tint="var(--tint-fog)"
               />
             </div>
-            <div
-              className="ed-flex"
-              style={{
-                marginTop: 48,
-                alignItems: "center",
-                justifyContent: "space-between",
-              }}
-            >
-              <Link
-                href={`${base}/overview`}
-                className="btn-link"
-                style={{ fontSize: 13, color: "var(--ink-70)" }}
-              >
-                ← Back
+            <StepNav>
+              <Link href={`${base}/overview`} className="btn btn-secondary">
+                <Icon name="arrow-left" size={16} strokeWidth={2} />
+                Back
               </Link>
               <button
+                type="button"
                 className="btn btn-primary"
                 disabled={!canContinueStep0 || submitting}
                 onClick={() => {
                   if (form.attending === "yes") setStep(1);
                   else if (form.attending === "no") void submit("no");
                 }}
-                style={{ opacity: canContinueStep0 && !submitting ? 1 : 0.4 }}
               >
-                {submitting ? "Submitting\u2026" : "Continue \u2192"}
+                {submitting ? (
+                  "Submitting\u2026"
+                ) : (
+                  <>
+                    Continue
+                    <Icon name="arrow-right" size={16} strokeWidth={2} />
+                  </>
+                )}
               </button>
-            </div>
+            </StepNav>
           </div>
         )}
 
         {step === 1 && (
-          <div className="page-in">
-            <h2
-              className="serif"
-              style={{
-                fontSize: 32,
-                fontWeight: 400,
-                letterSpacing: "-0.01em",
-                marginBottom: 12,
-              }}
-            >
-              The little details.
-            </h2>
-            <p
-              className="muted"
-              style={{
-                fontSize: 16,
-                lineHeight: 1.55,
-                marginBottom: 40,
-                maxWidth: 560,
-              }}
-            >
+          <div className="page-in" style={{ marginTop: 32 }}>
+            <h2 style={STEP_TITLE}>The little details</h2>
+            <p className="body" style={STEP_INTRO}>
               So we can feed you, room you, and get you home safely.
               {props.closesDisplay ? ` Please submit by ${props.closesDisplay}.` : ""}
             </p>
 
-            <FormBlock label="Dietary preferences" hint="Select all that apply.">
-              <div className="ed-flex wrap" style={{ gap: 8 }}>
-                {DIETARY_OPTIONS.map((opt) => {
-                  const on = form.dietary.includes(opt);
-                  return (
-                    <button
-                      key={opt}
-                      type="button"
-                      aria-pressed={on}
-                      onClick={() => toggleDietary(opt)}
-                      style={{
-                        padding: "10px 16px",
-                        borderRadius: 999,
-                        fontSize: 13,
-                        border: `1px solid ${on ? "var(--terracotta)" : "var(--ink-12)"}`,
-                        background: on ? "var(--terracotta)" : "var(--paper)",
-                        color: on ? "var(--bg)" : "var(--ink)",
-                        transition: "all 0.2s",
-                        cursor: "pointer",
-                      }}
-                    >
-                      {opt}
-                    </button>
-                  );
-                })}
-              </div>
-            </FormBlock>
+            <div style={FIELD_STACK}>
+              <ChoiceField legend="Dietary preferences" hint="Select all that apply.">
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {DIETARY_OPTIONS.map((opt) => {
+                    const on = form.dietary.includes(opt);
+                    return (
+                      <button
+                        key={opt}
+                        type="button"
+                        className="chip"
+                        aria-pressed={on}
+                        onClick={() => toggleDietary(opt)}
+                      >
+                        {opt}
+                      </button>
+                    );
+                  })}
+                </div>
+              </ChoiceField>
 
-            <FormBlock
-              label="Other dietary notes"
-              hint="Allergies, sensitivities, anything else."
-            >
-              <input
-                className="input"
-                placeholder="e.g. severe peanut allergy, low-sodium"
-                value={form.dietaryOther}
-                onChange={(e) => update("dietaryOther", e.target.value)}
-              />
-            </FormBlock>
+              <TextField
+                id="reg-dietary-other"
+                label="Other dietary notes"
+                hint="Allergies, sensitivities, anything else."
+              >
+                <input
+                  id="reg-dietary-other"
+                  type="text"
+                  aria-describedby="reg-dietary-other-hint"
+                  className="input"
+                  placeholder="e.g. severe peanut allergy, low-sodium"
+                  value={form.dietaryOther}
+                  onChange={(e) => update("dietaryOther", e.target.value)}
+                />
+              </TextField>
 
-            <FormBlock label="T-shirt size" hint="We'll have swag at check-in.">
-              <div className="ed-flex" style={{ gap: 8 }}>
-                {TSHIRT_SIZES.map((s) => {
-                  const on = form.tshirt === s;
-                  return (
-                    <button
-                      key={s}
-                      type="button"
-                      aria-pressed={on}
-                      onClick={() => update("tshirt", s)}
-                      style={{
-                        width: 56,
-                        padding: "12px 0",
-                        borderRadius: 10,
-                        fontSize: 13,
-                        fontWeight: 500,
-                        border: `1px solid ${on ? "var(--terracotta)" : "var(--ink-12)"}`,
-                        background: on ? "var(--terracotta)" : "var(--paper)",
-                        color: on ? "var(--bg)" : "var(--ink)",
-                      }}
-                    >
-                      {s}
-                    </button>
-                  );
-                })}
-              </div>
-            </FormBlock>
+              <ChoiceField legend="T-shirt size" hint="We'll have swag at check-in.">
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {TSHIRT_SIZES.map((s) => {
+                    const on = form.tshirt === s;
+                    return (
+                      <button
+                        key={s}
+                        type="button"
+                        className="chip chip-square"
+                        aria-pressed={on}
+                        onClick={() => update("tshirt", s)}
+                      >
+                        {s}
+                      </button>
+                    );
+                  })}
+                </div>
+              </ChoiceField>
 
-            <FormBlock
-              label="Roommate preference"
-              hint="We'll do our best — not always possible."
-            >
-              <input
-                className="input"
-                placeholder="Name of a teammate (optional)"
-                value={form.roommate}
-                onChange={(e) => update("roommate", e.target.value)}
-              />
-            </FormBlock>
-
-            <div
-              className="ed-flex"
-              style={{ marginTop: 48, justifyContent: "space-between" }}
-            >
-              <button className="btn btn-ghost" onClick={() => setStep(0)}>
-                ← Back
-              </button>
-              <button className="btn btn-primary" onClick={() => setStep(2)}>
-                Continue →
-              </button>
+              <TextField
+                id="reg-roommate"
+                label="Roommate preference"
+                hint="We'll do our best — not always possible."
+              >
+                <input
+                  id="reg-roommate"
+                  type="text"
+                  aria-describedby="reg-roommate-hint"
+                  className="input"
+                  placeholder="Name of a teammate (optional)"
+                  value={form.roommate}
+                  onChange={(e) => update("roommate", e.target.value)}
+                />
+              </TextField>
             </div>
+
+            <StepNav>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setStep(0)}
+              >
+                <Icon name="arrow-left" size={16} strokeWidth={2} />
+                Back
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => setStep(2)}
+              >
+                Continue
+                <Icon name="arrow-right" size={16} strokeWidth={2} />
+              </button>
+            </StepNav>
           </div>
         )}
 
         {step === 2 && (
-          <div className="page-in">
-            <h2
-              className="serif"
-              style={{
-                fontSize: 32,
-                fontWeight: 400,
-                letterSpacing: "-0.01em",
-                marginBottom: 12,
-              }}
-            >
-              Plus-one & emergency contact.
-            </h2>
+          <div className="page-in" style={{ marginTop: 32 }}>
+            <h2 style={STEP_TITLE}>Plus-one &amp; emergency contact</h2>
 
-            <FormBlock label="Bringing a plus-one?">
-              <div className="ed-grid grid-2" style={{ gap: 16 }}>
-                {[
-                  { v: "no" as const, t: "Just me", d: "Flying solo." },
-                  {
-                    v: "yes" as const,
-                    t: "Yes, plus one",
-                    d: "Self-pay at the plus-one rate shown on the Hotel page.",
-                  },
-                ].map((o) => {
-                  const on = form.plusOne === o.v;
-                  return (
-                    <button
+            <div style={FIELD_STACK}>
+              <ChoiceField legend="Bringing a plus-one?">
+                <div style={CHOICE_ROW}>
+                  {[
+                    { v: "no" as const, t: "Just me", d: "Flying solo." },
+                    {
+                      v: "yes" as const,
+                      t: "Yes, plus one",
+                      d: "Self-pay at the plus-one rate shown on the Hotel page.",
+                    },
+                  ].map((o) => (
+                    <ChoiceCard
                       key={o.v}
-                      type="button"
-                      aria-pressed={on}
+                      active={form.plusOne === o.v}
                       onClick={() => update("plusOne", o.v)}
-                      style={{
-                        padding: 24,
-                        borderRadius: 14,
-                        textAlign: "left",
-                        border: `1px solid ${on ? "var(--terracotta)" : "var(--ink-12)"}`,
-                        background: on
-                          ? "color-mix(in srgb, var(--terracotta) 6%, transparent)"
-                          : "var(--paper)",
-                        cursor: "pointer",
-                        transition: "all 0.2s",
-                      }}
-                    >
-                      <div className="serif" style={{ fontSize: 20, fontWeight: 400 }}>
-                        {o.t}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: 13,
-                          color: "var(--ink-55)",
-                          marginTop: 4,
-                        }}
-                      >
-                        {o.d}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </FormBlock>
+                      title={o.t}
+                      detail={o.d}
+                    />
+                  ))}
+                </div>
+              </ChoiceField>
 
-            {form.plusOne === "yes" && (
-              <FormBlock label="Plus-one name">
-                <input
-                  className="input"
-                  placeholder="First and last name"
-                  value={form.plusOneName}
-                  onChange={(e) => update("plusOneName", e.target.value)}
-                />
-              </FormBlock>
-            )}
+              {form.plusOne === "yes" && (
+                <div className="panel" style={{ padding: 20, borderRadius: 14 }}>
+                  <label htmlFor="reg-plus-one-name" className="label">
+                    Plus-one name
+                  </label>
+                  <input
+                    id="reg-plus-one-name"
+                    type="text"
+                    className="input"
+                    placeholder="First and last name"
+                    value={form.plusOneName}
+                    onChange={(e) => update("plusOneName", e.target.value)}
+                  />
+                </div>
+              )}
 
-            <FormBlock
-              label="Emergency contact"
-              hint="Name + phone, anyone we can reach if needed."
-            >
-              <input
-                className="input"
-                placeholder="Name · +1 555 123 4567"
-                value={form.emergency}
-                onChange={(e) => update("emergency", e.target.value)}
-              />
-            </FormBlock>
-
-            <FormBlock
-              label="Arrival / departure notes"
-              hint="Early arrival, late departure, special routing."
-            >
-              <textarea
-                className="input"
-                rows={3}
-                style={{ resize: "vertical", fontFamily: "var(--f-sans)" }}
-                placeholder="Anything we should know about your travel..."
-                value={form.arrivalNote}
-                onChange={(e) => update("arrivalNote", e.target.value)}
-              />
-            </FormBlock>
-
-            <div
-              className="ed-flex"
-              style={{ marginTop: 48, justifyContent: "space-between" }}
-            >
-              <button className="btn btn-ghost" onClick={() => setStep(1)}>
-                ← Back
-              </button>
-              <button
-                className="btn btn-primary"
-                disabled={submitting}
-                onClick={() => void submit("yes")}
+              <TextField
+                id="reg-emergency"
+                label="Emergency contact"
+                hint="Name + phone, anyone we can reach if needed."
               >
-                {submitting ? "Submitting\u2026" : "Submit RSVP \u2192"}
-              </button>
+                <input
+                  id="reg-emergency"
+                  type="text"
+                  aria-describedby="reg-emergency-hint"
+                  className="input"
+                  placeholder="Name · +1 555 123 4567"
+                  value={form.emergency}
+                  onChange={(e) => update("emergency", e.target.value)}
+                />
+              </TextField>
+
+              <TextField
+                id="reg-arrival"
+                label="Arrival / departure notes"
+                hint="Early arrival, late departure, special routing."
+              >
+                <textarea
+                  id="reg-arrival"
+                  aria-describedby="reg-arrival-hint"
+                  className="input"
+                  rows={4}
+                  placeholder="Anything we should know about your travel..."
+                  value={form.arrivalNote}
+                  onChange={(e) => update("arrivalNote", e.target.value)}
+                />
+              </TextField>
             </div>
+
+            <StepNav>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setStep(1)}
+              >
+                <Icon name="arrow-left" size={16} strokeWidth={2} />
+                Back
+              </button>
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                  justifyContent: "flex-end",
+                  gap: "12px 20px",
+                }}
+              >
+                <span className="hint">You can change your answer later.</span>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  disabled={submitting}
+                  onClick={() => void submit("yes")}
+                >
+                  {submitting ? (
+                    "Submitting\u2026"
+                  ) : (
+                    <>
+                      Submit RSVP
+                      <Icon name="arrow-right" size={16} strokeWidth={2} />
+                    </>
+                  )}
+                </button>
+              </div>
+            </StepNav>
           </div>
         )}
       </div>
-    </div>
+    </RegistrationShell>
   );
 }
 
@@ -612,6 +567,216 @@ function errorMessage(code: string): string {
   }
 }
 
+/* ------------------------------------------------------------------ */
+/* Layout pieces                                                       */
+/* ------------------------------------------------------------------ */
+
+const STEP_TITLE: CSSProperties = {
+  margin: 0,
+  fontSize: 24,
+  lineHeight: 1.25,
+  fontWeight: 600,
+  letterSpacing: "-0.02em",
+};
+
+const STEP_INTRO: CSSProperties = { marginTop: 8, maxWidth: 560, lineHeight: 1.6 };
+
+const FIELD_STACK: CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 28,
+  marginTop: 28,
+};
+
+const CHOICE_ROW: CSSProperties = { display: "flex", flexWrap: "wrap", gap: 12 };
+
+/** Page header + two-column body (form/result on the left, facts on the right). */
+function RegistrationShell({
+  lede,
+  aside,
+  children,
+}: {
+  lede?: string;
+  aside: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <div className="page-in">
+      <PageHeader eyebrow="Registration" title="Your RSVP" lede={lede} />
+      <div className="container page-end" style={{ paddingTop: 40 }}>
+        <div className="split" style={{ gap: 32 }}>
+          <div className="split-main">{children}</div>
+          {aside}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StepNav({ children }: { children: ReactNode }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexWrap: "wrap",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 12,
+        marginTop: 32,
+        paddingTop: 28,
+        borderTop: "1px solid var(--line)",
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function AtAGlance({
+  email,
+  datesDisplay,
+  venueName,
+  closesDisplay,
+  rates,
+  slackChannel,
+  supportEmail,
+  faqHref,
+}: {
+  email: string;
+  datesDisplay: string;
+  venueName: string;
+  closesDisplay: string | null;
+  rates?: RegistrationRates;
+  slackChannel?: string;
+  supportEmail?: string;
+  faqHref?: string;
+}) {
+  const rows: { label: string; value: string }[] = [
+    { label: "Dates", value: datesDisplay },
+    { label: "Venue", value: venueName },
+  ];
+  if (closesDisplay) rows.push({ label: "Deadline", value: closesDisplay });
+  if (typeof rates?.plusOne === "number") {
+    rows.push({ label: "Plus-ones", value: `$${rates.plusOne}/day, self-pay` });
+  }
+  if (typeof rates?.extensionEmployee === "number") {
+    rows.push({ label: "Extra nights", value: `$${rates.extensionEmployee}/day` });
+  }
+  if (typeof rates?.extensionPlusOne === "number") {
+    rows.push({
+      label: "Extra nights, plus-ones",
+      value: `$${rates.extensionPlusOne}/day`,
+    });
+  }
+
+  const linkStyle: CSSProperties = { color: "var(--accent)", fontWeight: 500 };
+  const contacts: ((first: boolean) => ReactNode)[] = [];
+  if (slackChannel) {
+    contacts.push((first) => (
+      <>
+        {first ? "Post" : "post"} in{" "}
+        <span style={{ color: "var(--ink)", fontWeight: 500 }}>{slackChannel}</span>
+      </>
+    ));
+  }
+  if (supportEmail) {
+    contacts.push((first) => (
+      <>
+        {first ? "Email" : "email"}{" "}
+        <a href={`mailto:${supportEmail}`} style={linkStyle}>
+          {supportEmail}
+        </a>
+      </>
+    ));
+  }
+  if (faqHref) {
+    contacts.push((first) => (
+      <>
+        {first ? "See" : "see"} the{" "}
+        <Link href={faqHref} style={linkStyle}>
+          FAQ
+        </Link>
+      </>
+    ));
+  }
+
+  return (
+    <aside
+      className="split-side sticky-side"
+      aria-label="At a glance"
+      style={{ display: "flex", flexDirection: "column", gap: 16 }}
+    >
+      <div className="card" style={{ padding: 20 }}>
+        <div className="text-muted" style={{ fontSize: 13 }}>
+          Signed in as
+        </div>
+        <div
+          style={{
+            marginTop: 4,
+            fontSize: 15,
+            fontWeight: 600,
+            overflowWrap: "anywhere",
+          }}
+        >
+          {email}
+        </div>
+      </div>
+
+      <div className="panel" style={{ padding: 24, borderRadius: 16 }}>
+        <h2 className="h4" style={{ marginBottom: 8 }}>
+          At a glance
+        </h2>
+        <dl style={{ margin: 0 }}>
+          {rows.map((r, i) => (
+            <div
+              key={r.label}
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                gap: 16,
+                padding: i === rows.length - 1 ? "12px 0 0" : "12px 0",
+                borderBottom:
+                  i === rows.length - 1 ? undefined : "1px solid var(--line)",
+                fontSize: 14,
+              }}
+            >
+              <dt className="text-muted">{r.label}</dt>
+              <dd style={{ margin: 0, fontWeight: 500, textAlign: "right" }}>
+                {r.value}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+
+      {contacts.length > 0 && (
+        <p
+          className="body"
+          style={{ fontSize: 14, padding: "0 4px", overflowWrap: "anywhere" }}
+        >
+          Questions?{" "}
+          {contacts.map((render, i) => (
+            <Fragment key={i}>
+              {i > 0 &&
+                (i === contacts.length - 1
+                  ? contacts.length > 2
+                    ? ", or "
+                    : " or "
+                  : ", ")}
+              {render(i === 0)}
+            </Fragment>
+          ))}
+          .
+        </p>
+      )}
+    </aside>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* States                                                              */
+/* ------------------------------------------------------------------ */
+
 function RegistrationClosed({
   base,
   eventShortName,
@@ -621,38 +786,20 @@ function RegistrationClosed({
 }) {
   return (
     <div className="page-in">
-      <div
-        className="container-read"
-        style={{ paddingTop: 96, paddingBottom: 120, textAlign: "center" }}
-      >
-        <h1
-          className="display"
-          style={{
-            fontSize: 64,
-            marginTop: 16,
-            letterSpacing: "-0.03em",
-            lineHeight: 0.95,
-          }}
-        >
-          Registration is
-          <br />
-          <em style={{ fontStyle: "italic" }}>closed.</em>
-        </h1>
-        <p
-          className="serif"
-          style={{
-            fontSize: 19,
-            color: "var(--ink-70)",
-            fontStyle: "italic",
-            marginTop: 24,
-            lineHeight: 1.6,
-          }}
-        >
-          {eventShortName} isn&rsquo;t taking new RSVPs right now. If you
-          need to change yours, reach out to your organizer.
-        </p>
-        <div style={{ marginTop: 48 }}>
-          <Link href={`${base}/overview`} className="btn btn-ghost">
+      <PageHeader
+        eyebrow="Registration"
+        title="Registration is closed"
+        lede={
+          <>
+            {eventShortName} isn&rsquo;t taking new RSVPs right now. If you
+            need to change yours, reach out to your organizer.
+          </>
+        }
+      />
+      <div className="container page-end">
+        <div style={{ marginTop: 32 }}>
+          <Link href={`${base}/overview`} className="btn btn-secondary">
+            <Icon name="arrow-left" size={16} strokeWidth={2} />
             Back to overview
           </Link>
         </div>
@@ -675,208 +822,159 @@ function Submitted({
   onEdit: () => void;
 }) {
   return (
-    <div className="page-in">
-      <div
-        className="container-read"
-        style={{ paddingTop: 120, paddingBottom: 160, textAlign: "center" }}
+    <div
+      className="card card-lg page-in"
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "flex-start",
+        gap: 16,
+      }}
+    >
+      <span
+        aria-hidden
+        style={{
+          width: 48,
+          height: 48,
+          borderRadius: 999,
+          background: declined ? "var(--surface-2)" : "var(--accent-soft)",
+          color: declined ? "var(--ink-muted)" : "var(--accent)",
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
       >
-        <div
+        <Icon name="check" size={24} strokeWidth={2} />
+      </span>
+      <div>
+        <h2
           style={{
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: 88,
-            height: 88,
-            borderRadius: "50%",
-            background: declined ? "var(--tint-fog)" : "var(--tint-teal)",
-            color: declined ? "var(--ink-70)" : "var(--teal)",
-            fontSize: 42,
-            fontFamily: "var(--f-serif)",
-            fontStyle: "italic",
-            marginBottom: 32,
-          }}
-          aria-hidden
-        >
-          {declined ? "\u2014" : "\u2713"}
-        </div>
-        <div
-          className="script"
-          style={{
-            fontSize: 44,
-            color: "var(--terracotta)",
-            transform: "rotate(-2deg)",
-            display: "inline-block",
-            marginBottom: 8,
+            margin: 0,
+            fontSize: 32,
+            lineHeight: 1.15,
+            fontWeight: 600,
+            letterSpacing: "-0.025em",
           }}
         >
-          {declined ? "noted" : "you\u2019re in!"}
-        </div>
-        <h1 className="display" style={{ fontSize: 72, marginTop: 16, lineHeight: 0.95 }}>
-          {declined ? (
-            <>We&rsquo;ll miss you.</>
-          ) : (
-            <>
-              See you in
-              <br />
-              <em style={{ fontStyle: "italic" }}>{cityShort}.</em>
-            </>
-          )}
-        </h1>
+          {declined ? <>We&rsquo;ll miss you.</> : <>See you in {cityShort}.</>}
+        </h2>
         <p
-          className="serif"
-          style={{
-            fontSize: 19,
-            color: "var(--ink-70)",
-            fontStyle: "italic",
-            marginTop: 28,
-            lineHeight: 1.6,
-          }}
+          className="body"
+          style={{ marginTop: 10, maxWidth: 520, fontSize: 16, lineHeight: 1.6 }}
         >
           {declined
             ? "Your RSVP is recorded. Reach out to your organizer if anything changes."
             : "Your RSVP is recorded. We\u2019ll follow up with flight booking instructions and your rooming confirmation in the coming weeks."}
         </p>
         {submittedAt && (
-          <div
-            className="mono"
-            style={{
-              marginTop: 20,
-              fontSize: 11,
-              letterSpacing: "0.1em",
-              color: "var(--ink-55)",
-            }}
-          >
-            RECORDED {formatDateTime(submittedAt)}
-          </div>
+          <p className="hint" style={{ margin: "12px 0 0" }}>
+            Recorded {formatDateTime(submittedAt)}
+          </p>
         )}
-        <div
-          style={{
-            marginTop: 48,
-            display: "flex",
-            gap: 12,
-            justifyContent: "center",
-            flexWrap: "wrap",
-          }}
-        >
-          <Link href={`${base}/agenda`} className="btn btn-primary">
-            See the agenda →
-          </Link>
-          <Link href={`${base}/hotel`} className="btn btn-ghost">
-            Travel details
-          </Link>
-          <button onClick={onEdit} className="btn btn-ghost">
-            Change my answer
-          </button>
-        </div>
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 8 }}>
+        <Link href={`${base}/agenda`} className="btn btn-primary">
+          See the agenda
+          <Icon name="arrow-right" size={16} strokeWidth={2} />
+        </Link>
+        <Link href={`${base}/hotel`} className="btn btn-secondary">
+          Travel details
+        </Link>
+        <button type="button" onClick={onEdit} className="btn btn-secondary">
+          Change my answer
+        </button>
       </div>
     </div>
   );
 }
 
-function RSVPCard({
+/* ------------------------------------------------------------------ */
+/* Form pieces                                                         */
+/* ------------------------------------------------------------------ */
+
+/** Large radio-style card; selected state is carried by aria-pressed. */
+function ChoiceCard({
   active,
   onClick,
   title,
-  script,
   detail,
-  tint,
 }: {
   active: boolean;
   onClick: () => void;
   title: string;
-  script: string;
   detail: string;
-  tint: string;
 }) {
   return (
     <button
-      onClick={onClick}
+      type="button"
+      className="choice"
       aria-pressed={active}
-      style={{
-        padding: 36,
-        borderRadius: 18,
-        textAlign: "left",
-        border: `1px solid ${active ? "var(--terracotta)" : "var(--ink-12)"}`,
-        background: active ? tint : "var(--paper)",
-        cursor: "pointer",
-        transition: "all 0.25s",
-        position: "relative",
-        overflow: "hidden",
-        minHeight: 180,
-      }}
+      onClick={onClick}
+      style={{ flex: "1 1 240px", width: "auto" }}
     >
-      <div
-        className="script"
-        style={{
-          fontSize: 48,
-          color: active ? "var(--terracotta)" : "var(--ink-40)",
-          lineHeight: 1,
-          marginBottom: 12,
-          transform: "rotate(-3deg)",
-          display: "inline-block",
-        }}
-      >
-        {script}
-      </div>
-      <div
-        className="serif"
-        style={{ fontSize: 26, fontWeight: 400, letterSpacing: "-0.01em" }}
-      >
-        {title}
-      </div>
-      <div style={{ fontSize: 14, color: "var(--ink-70)", marginTop: 8 }}>{detail}</div>
-      {active && (
-        <div
-          aria-hidden
-          style={{
-            position: "absolute",
-            top: 24,
-            right: 24,
-            width: 28,
-            height: 28,
-            borderRadius: "50%",
-            background: "var(--terracotta)",
-            color: "var(--bg)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: 14,
-          }}
-        >
-          ✓
-        </div>
-      )}
+      <span className="choice-dot" aria-hidden />
+      <span style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        <span style={{ fontSize: 16, fontWeight: 600 }}>{title}</span>
+        <span className="body" style={{ fontSize: 14, lineHeight: 1.5 }}>
+          {detail}
+        </span>
+      </span>
     </button>
   );
 }
 
-function FormBlock({
+/** Group of toggle buttons with a legend and optional hint. */
+function ChoiceField({
+  legend,
+  hint,
+  children,
+}: {
+  legend: string;
+  hint?: string;
+  children: ReactNode;
+}) {
+  return (
+    <fieldset className="field">
+      <legend>{legend}</legend>
+      {hint && (
+        <div className="hint" style={{ marginTop: 4 }}>
+          {hint}
+        </div>
+      )}
+      <div style={{ marginTop: 12 }}>{children}</div>
+    </fieldset>
+  );
+}
+
+/**
+ * Label + optional hint above a single control. The control itself is
+ * passed as children and must carry the matching `id` (and
+ * `aria-describedby={`${id}-hint`}` when a hint is shown).
+ */
+function TextField({
+  id,
   label,
   hint,
   children,
 }: {
+  id: string;
   label: string;
   hint?: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
-    <div style={{ marginBottom: 32 }}>
-      <div className="eyebrow" style={{ marginBottom: 4 }}>
+    <div>
+      <label
+        htmlFor={id}
+        className="label"
+        style={hint ? { marginBottom: 2 } : undefined}
+      >
         {label}
-      </div>
-      {hint ? (
-        <div
-          style={{
-            fontSize: 13,
-            color: "var(--ink-55)",
-            marginBottom: 14,
-            fontStyle: "italic",
-          }}
-        >
+      </label>
+      {hint && (
+        <div id={`${id}-hint`} className="hint" style={{ marginBottom: 8 }}>
           {hint}
         </div>
-      ) : (
-        <div style={{ height: 10 }} />
       )}
       {children}
     </div>
@@ -893,60 +991,27 @@ function FormBlock({
 export function RegistrationRetry({ slug }: { slug: string }) {
   return (
     <div className="page-in">
-      <div
-        className="container-read"
-        style={{ paddingTop: 120, paddingBottom: 160, textAlign: "center" }}
-      >
+      <PageHeader eyebrow="Registration" title="Hold on a second" />
+      <div className="container page-end">
         <div
-          aria-hidden
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: 72,
-            height: 72,
-            borderRadius: "50%",
-            background:
-              "color-mix(in srgb, var(--warn) 12%, transparent)",
-            color: "var(--warn)",
-            fontSize: 34,
-            fontFamily: "var(--f-serif)",
-            fontStyle: "italic",
-            marginBottom: 24,
-          }}
+          className="callout callout-warn"
+          style={{ marginTop: 32, maxWidth: 640 }}
         >
-          !
+          <Icon
+            name="alert"
+            size={20}
+            style={{ marginTop: 1, color: "var(--warn)" }}
+          />
+          <p style={{ margin: 0 }}>
+            We couldn&rsquo;t load your RSVP details just now. Refresh in a
+            moment, or head back to the overview and try again.
+          </p>
         </div>
-        <h1
-          className="display"
-          style={{
-            fontSize: 48,
-            marginTop: 8,
-            lineHeight: 1,
-            letterSpacing: "-0.02em",
-          }}
-        >
-          Hold on a second.
-        </h1>
-        <p
-          className="serif"
-          style={{
-            fontSize: 18,
-            fontStyle: "italic",
-            color: "var(--ink-70)",
-            marginTop: 20,
-            lineHeight: 1.6,
-          }}
-        >
-          We couldn&rsquo;t load your RSVP details just now. Refresh in a
-          moment, or head back to the overview and try again.
-        </p>
         <div
           style={{
-            marginTop: 40,
+            marginTop: 32,
             display: "flex",
             gap: 12,
-            justifyContent: "center",
             flexWrap: "wrap",
           }}
         >
@@ -957,7 +1022,7 @@ export function RegistrationRetry({ slug }: { slug: string }) {
           >
             Retry
           </Link>
-          <Link href={`/e/${slug}/overview`} className="btn btn-ghost">
+          <Link href={`/e/${slug}/overview`} className="btn btn-secondary">
             Back to overview
           </Link>
         </div>

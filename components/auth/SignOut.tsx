@@ -57,40 +57,46 @@ export function SessionBadge({
 
   return (
     <div
-      className="mono"
       style={{
         display: "inline-flex",
         alignItems: "center",
         gap: 10,
-        fontSize: 11,
-        color: "var(--ink-55)",
-        letterSpacing: "0.04em",
+        fontSize: 14,
+        color: "var(--ink-muted)",
       }}
     >
       <span
-        aria-label="Signed in as"
+        aria-hidden="true"
+        style={{
+          width: 28,
+          height: 28,
+          borderRadius: 999,
+          background: "var(--accent-soft)",
+          color: "var(--accent)",
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: 12,
+          fontWeight: 700,
+          flex: "0 0 auto",
+        }}
+      >
+        {email.slice(0, 1).toUpperCase()}
+      </span>
+      <span
+        className="nav-visitor-name"
+        title={email}
         style={{ maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
       >
+        <span className="sr-only">Signed in as </span>
         {email}
       </span>
-      <span aria-hidden="true">{"\u00b7"}</span>
       <button
         type="button"
         onClick={onClick}
         disabled={pending}
-        style={{
-          background: "transparent",
-          border: 0,
-          padding: 0,
-          margin: 0,
-          color: "var(--ink-70)",
-          cursor: pending ? "wait" : "pointer",
-          fontSize: 11,
-          letterSpacing: "0.04em",
-          fontFamily: "inherit",
-          textDecoration: "underline",
-          textUnderlineOffset: 2,
-        }}
+        className="btn btn-secondary btn-sm"
+        style={{ cursor: pending ? "wait" : "pointer" }}
       >
         {pending ? "Signing out\u2026" : "Sign out"}
       </button>
@@ -118,7 +124,7 @@ export function SignOutButton({
       type="button"
       onClick={onClick}
       disabled={pending}
-      className="btn btn-ghost"
+      className="btn btn-secondary"
       style={{ cursor: pending ? "wait" : "pointer" }}
     >
       {pending ? "Signing out\u2026" : label}

@@ -1,6 +1,8 @@
 import { cookies } from "next/headers";
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { notFound, redirect } from "next/navigation";
+import { Icon, type IconName } from "@/components/Icon";
 import { authorizeEventRequest } from "@/lib/auth/guard";
 import { loadEvent } from "@/lib/content";
 import { respondentToken } from "@/lib/feedback/respondent";
@@ -80,51 +82,82 @@ export default async function FeedbackPage({
   const src = `https://tally.so/embed/${feedback.tallyFormId}?${qs.toString()}`;
 
   return (
-    <div className="page-in">
+    <div className="page-in container-read page-head page-end">
+      <div className="kicker">Feedback</div>
+      <h1 className="h1" style={{ marginTop: 10 }}>
+        {feedback.heading ?? "Tell us how it went"}
+      </h1>
+      {feedback.intro && (
+        <p className="lede" style={{ marginTop: 18 }}>
+          {feedback.intro}
+        </p>
+      )}
       <div
-        className="container-read"
-        style={{ paddingTop: 72, paddingBottom: 120 }}
+        className="card card-lg"
+        style={{ marginTop: 40, display: "flex", flexDirection: "column", gap: 24 }}
       >
-        <div className="eyebrow eyebrow-accent">
-          {feedback.heading ?? "Tell us how it went"}
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <span className="icon-tile" style={{ width: 36, height: 36 }}>
+            <Icon name="message" size={18} />
+          </span>
+          <h2 className="h4">Feedback form</h2>
         </div>
-        <h1
-          className="display"
+        <iframe
+          src={src}
+          title={`${content.brand.shortName} feedback form`}
+          loading="lazy"
+          referrerPolicy="no-referrer"
           style={{
-            fontSize: "clamp(44px, 11vw, 84px)",
-            marginTop: 16,
-            letterSpacing: "-0.03em",
-            lineHeight: 0.95,
+            display: "block",
+            width: "100%",
+            height: feedback.iframeHeightPx,
+            border: 0,
           }}
-        >
-          Your <em style={{ fontStyle: "italic" }}>feedback.</em>
+        />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Shared layout for the states that render instead of the form:
+ * centered icon, kicker, heading, short explanation, one action.
+ */
+function StateNotice({
+  icon,
+  kicker,
+  title,
+  children,
+  action,
+}: {
+  icon: IconName;
+  kicker: string;
+  title: string;
+  children: ReactNode;
+  action: { href: string; label: string };
+}) {
+  return (
+    <div
+      className="page-in container-read page-head page-end"
+      style={{ textAlign: "center" }}
+    >
+      <div style={{ maxWidth: 520, margin: "0 auto" }}>
+        <span className="icon-tile">
+          <Icon name={icon} size={20} />
+        </span>
+        <div className="kicker" style={{ marginTop: 20 }}>
+          {kicker}
+        </div>
+        <h1 className="h2" style={{ marginTop: 10 }}>
+          {title}
         </h1>
-        {feedback.intro && (
-          <p
-            className="serif"
-            style={{
-              fontSize: 20,
-              color: "var(--ink-70)",
-              fontStyle: "italic",
-              marginTop: 28,
-              lineHeight: 1.55,
-            }}
-          >
-            {feedback.intro}
-          </p>
-        )}
-        <div style={{ marginTop: 48 }}>
-          <iframe
-            src={src}
-            title={`${content.brand.shortName} feedback form`}
-            loading="lazy"
-            referrerPolicy="no-referrer"
-            style={{
-              width: "100%",
-              height: feedback.iframeHeightPx,
-              border: 0,
-            }}
-          />
+        <p className="body" style={{ marginTop: 16, fontSize: 17, lineHeight: 1.6 }}>
+          {children}
+        </p>
+        <div style={{ marginTop: 32 }}>
+          <Link href={action.href} className="btn btn-primary">
+            {action.label}
+          </Link>
         </div>
       </div>
     </div>
@@ -137,95 +170,31 @@ export default async function FeedbackPage({
  */
 function FeedbackPreviewNotice({ slug }: { slug: string }) {
   return (
-    <main
-      style={{
-        minHeight: "60vh",
-        display: "grid",
-        placeItems: "center",
-        padding: "48px 24px",
-      }}
+    <StateNotice
+      icon="lock"
+      kicker="Preview mode"
+      title="Feedback is hidden here."
+      action={{ href: `/e/${slug}`, label: "Back to the event" }}
     >
-      <div style={{ maxWidth: 520, textAlign: "center" }}>
-        <div className="eyebrow eyebrow-accent">Preview mode</div>
-        <h1
-          className="display"
-          style={{
-            fontSize: "clamp(32px, 6vw, 44px)",
-            marginTop: 12,
-            lineHeight: 1.1,
-            letterSpacing: "-0.02em",
-          }}
-        >
-          Feedback is hidden here.
-        </h1>
-        <p
-          className="serif"
-          style={{
-            fontSize: 17,
-            fontStyle: "italic",
-            color: "var(--ink-70)",
-            marginTop: 20,
-            lineHeight: 1.6,
-          }}
-        >
-          The feedback form is personalized per attendee, so it only
-          renders with a real login. To test it, seed an invite and sign
-          in via the normal magic-link flow.
-        </p>
-        <div style={{ marginTop: 32 }}>
-          <Link href={`/e/${slug}`} className="btn btn-primary">
-            Back to the event
-          </Link>
-        </div>
-      </div>
-    </main>
+      The feedback form is personalized per attendee, so it only renders
+      with a real login. To test it, seed an invite and sign in via the
+      normal magic-link flow.
+    </StateNotice>
   );
 }
 
 /** Auth guard hit a database error — render a retry path, never the form. */
 function FeedbackRetryNotice({ slug }: { slug: string }) {
   return (
-    <main
-      style={{
-        minHeight: "60vh",
-        display: "grid",
-        placeItems: "center",
-        padding: "48px 24px",
-      }}
+    <StateNotice
+      icon="alert"
+      kicker="One moment"
+      title="We couldn’t load your session."
+      action={{ href: `/e/${slug}/feedback`, label: "Try again" }}
     >
-      <div style={{ maxWidth: 520, textAlign: "center" }}>
-        <div className="eyebrow eyebrow-accent">One moment</div>
-        <h1
-          className="display"
-          style={{
-            fontSize: "clamp(32px, 6vw, 44px)",
-            marginTop: 12,
-            lineHeight: 1.1,
-            letterSpacing: "-0.02em",
-          }}
-        >
-          We couldn&rsquo;t load your session.
-        </h1>
-        <p
-          className="serif"
-          style={{
-            fontSize: 17,
-            fontStyle: "italic",
-            color: "var(--ink-70)",
-            marginTop: 20,
-            lineHeight: 1.6,
-          }}
-        >
-          Something hiccuped on our side. Reload the page to try again —
-          your feedback form will be right here.
-        </p>
-        <div style={{ marginTop: 32 }}>
-          <Link href={`/e/${slug}/feedback`} className="btn btn-primary">
-            Try again
-          </Link>
-        </div>
-      </div>
-    </main>
+      Something hiccuped on our side. Reload the page to try again — your
+      feedback form will be right here.
+    </StateNotice>
   );
 }
 
@@ -240,58 +209,27 @@ function FeedbackClosedNotice({
   supportEmail?: string;
 }) {
   return (
-    <main
-      style={{
-        minHeight: "60vh",
-        display: "grid",
-        placeItems: "center",
-        padding: "48px 24px",
-      }}
+    <StateNotice
+      icon="check"
+      kicker="Feedback"
+      title="The feedback window has closed."
+      action={{ href: `/e/${slug}`, label: "Back to the event" }}
     >
-      <div style={{ maxWidth: 520, textAlign: "center" }}>
-        <div className="eyebrow eyebrow-accent">Feedback</div>
-        <h1
-          className="display"
-          style={{
-            fontSize: "clamp(32px, 6vw, 44px)",
-            marginTop: 12,
-            lineHeight: 1.1,
-            letterSpacing: "-0.02em",
-          }}
-        >
-          The feedback window has closed.
-        </h1>
-        <p
-          className="serif"
-          style={{
-            fontSize: 17,
-            fontStyle: "italic",
-            color: "var(--ink-70)",
-            marginTop: 20,
-            lineHeight: 1.6,
-          }}
-        >
-          {outro ??
-            "Thanks to everyone who shared their thoughts — it genuinely shapes the next one."}
-          {supportEmail && (
-            <>
-              {" "}
-              Still want to reach us? Write to{" "}
-              <strong
-                style={{ color: "var(--terracotta)", fontStyle: "normal" }}
-              >
-                {supportEmail}
-              </strong>
-              .
-            </>
-          )}
-        </p>
-        <div style={{ marginTop: 32 }}>
-          <Link href={`/e/${slug}`} className="btn btn-primary">
-            Back to the event
-          </Link>
-        </div>
-      </div>
-    </main>
+      {outro ??
+        "Thanks to everyone who shared their thoughts — it genuinely shapes the next one."}
+      {supportEmail && (
+        <>
+          {" "}
+          Still want to reach us? Write to{" "}
+          <a
+            href={`mailto:${supportEmail}`}
+            style={{ color: "var(--accent)", fontWeight: 500 }}
+          >
+            {supportEmail}
+          </a>
+          .
+        </>
+      )}
+    </StateNotice>
   );
 }

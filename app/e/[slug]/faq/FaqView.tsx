@@ -1,178 +1,192 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
+import { Icon } from "@/components/Icon";
+import { PageHeader } from "@/components/PageHeader";
 import type { FaqItem } from "@/lib/schemas";
 
 export function FaqView({
   items,
+  eventName,
   slackChannel,
+  supportEmail,
+  links,
 }: {
   items: FaqItem[];
+  eventName: string;
   slackChannel?: string;
+  supportEmail?: string;
+  /** Related pages for the side panel — only sections the event enables. */
+  links: { href: string; label: string }[];
 }) {
-  const [open, setOpen] = useState<number>(0);
+  // Each answer toggles independently; the first one starts open.
+  const [open, setOpen] = useState<ReadonlySet<number>>(() => new Set([0]));
+  const toggle = (i: number) =>
+    setOpen((prev) => {
+      const next = new Set(prev);
+      if (next.has(i)) next.delete(i);
+      else next.add(i);
+      return next;
+    });
+
+  const hasContact = !!(slackChannel || supportEmail);
+  const hasSide = hasContact || links.length > 0;
+
   return (
     <div className="page-in">
-      <div className="container-read" style={{ paddingTop: 72, paddingBottom: 120 }}>
-        <div className="eyebrow eyebrow-accent">Got questions?</div>
-        <h1
-          className="display"
-          style={{
-            fontSize: "clamp(44px, 11vw, 84px)",
-            marginTop: 16,
-            letterSpacing: "-0.03em",
-            lineHeight: 0.95,
-          }}
-        >
-          We&rsquo;ve got
-          <br />
-          <em style={{ fontStyle: "italic" }}>answers.</em>
-        </h1>
-        {slackChannel && (
-          <p
-            className="serif"
-            style={{
-              fontSize: 20,
-              color: "var(--ink-70)",
-              fontStyle: "italic",
-              marginTop: 28,
-              lineHeight: 1.55,
-            }}
-          >
-            If you don&rsquo;t see what you need, post in{" "}
-            <strong style={{ color: "var(--terracotta)", fontStyle: "normal" }}>
-              {slackChannel}
-            </strong>{" "}
-            on Slack.
-          </p>
-        )}
+      <PageHeader
+        eyebrow="FAQ"
+        title="Questions, answered"
+        lede={`The things people ask most about ${eventName}.`}
+      />
 
-        <div style={{ marginTop: 64, borderTop: "1px solid var(--ink-12)" }}>
-          {items.map((item, i) => {
-            const isOpen = open === i;
-            const panelId = `faq-panel-${i}`;
-            const buttonId = `faq-button-${i}`;
-            return (
-              <div key={i} style={{ borderBottom: "1px solid var(--ink-12)" }}>
-                <button
-                  id={buttonId}
-                  aria-expanded={isOpen}
-                  aria-controls={panelId}
-                  onClick={() => setOpen(isOpen ? -1 : i)}
-                  style={{
-                    width: "100%",
-                    padding: "28px 0",
-                    display: "grid",
-                    gridTemplateColumns: "48px 1fr 40px",
-                    gap: 20,
-                    alignItems: "baseline",
-                    textAlign: "left",
-                    cursor: "pointer",
-                  }}
-                >
-                  <div
-                    className="mono"
-                    style={{
-                      fontSize: 12,
-                      color: "var(--ink-55)",
-                      letterSpacing: "0.1em",
-                    }}
-                  >
-                    {String(i + 1).padStart(2, "0")}
-                  </div>
-                  <div
-                    className="serif"
-                    style={{
-                      fontSize: 22,
-                      fontWeight: 400,
-                      letterSpacing: "-0.005em",
-                      lineHeight: 1.35,
-                    }}
-                  >
-                    {item.q}
-                  </div>
-                  <div
-                    aria-hidden
-                    className="serif"
-                    style={{
-                      fontSize: 28,
-                      color: "var(--terracotta)",
-                      fontStyle: "italic",
-                      fontWeight: 300,
-                      transition: "transform 0.3s",
-                      transform: isOpen ? "rotate(45deg)" : "rotate(0)",
-                      textAlign: "right",
-                      lineHeight: 1,
-                    }}
-                  >
-                    +
-                  </div>
-                </button>
-                <div
-                  id={panelId}
-                  role="region"
-                  aria-labelledby={buttonId}
-                  hidden={!isOpen}
-                  style={{
-                    maxHeight: isOpen ? 400 : 0,
-                    overflow: "hidden",
-                    transition: "max-height 0.35s ease, opacity 0.25s",
-                    opacity: isOpen ? 1 : 0,
-                  }}
-                >
-                  <div
-                    style={{
-                      padding: "4px 0 36px 68px",
-                      fontSize: 16,
-                      color: "var(--ink-70)",
-                      lineHeight: 1.7,
-                      maxWidth: 600,
-                    }}
-                  >
-                    {item.a}
+      <div className="container page-end" style={{ paddingTop: 40 }}>
+        <div className="split">
+          <div className="split-main rows">
+            {items.map((item, i) => {
+              const isOpen = open.has(i);
+              const panelId = `faq-panel-${i}`;
+              const buttonId = `faq-button-${i}`;
+              return (
+                <div key={i}>
+                  <h2 style={{ margin: 0 }}>
+                    <button
+                      type="button"
+                      id={buttonId}
+                      aria-expanded={isOpen}
+                      aria-controls={panelId}
+                      onClick={() => toggle(i)}
+                      style={{
+                        width: "100%",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: 24,
+                        padding: "20px 0",
+                        minHeight: 64,
+                        fontSize: 17,
+                        fontWeight: 600,
+                        letterSpacing: "-0.01em",
+                        lineHeight: 1.4,
+                        color: "var(--ink)",
+                        textAlign: "left",
+                      }}
+                    >
+                      <span>{item.q}</span>
+                      <span
+                        className="transition-transform duration-200 motion-reduce:transition-none"
+                        style={{
+                          flex: "0 0 auto",
+                          width: 32,
+                          height: 32,
+                          borderRadius: 999,
+                          background: "var(--surface-2)",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          transform: isOpen ? "rotate(180deg)" : "none",
+                        }}
+                      >
+                        <Icon name="chevron-down" size={16} strokeWidth={2} />
+                      </span>
+                    </button>
+                  </h2>
+                  <div id={panelId} role="region" aria-labelledby={buttonId} hidden={!isOpen}>
+                    <p
+                      style={{
+                        margin: 0,
+                        padding: "0 56px 22px 0",
+                        fontSize: 16,
+                        lineHeight: 1.65,
+                        color: "var(--ink-muted)",
+                      }}
+                    >
+                      {item.a}
+                    </p>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {slackChannel && (
-          <div
-            style={{
-              marginTop: 80,
-              padding: 40,
-              borderRadius: 18,
-              background: "var(--paper)",
-              border: "1px solid var(--ink-12)",
-              textAlign: "center",
-            }}
-          >
-            <div
-              className="script"
-              style={{
-                fontSize: 40,
-                color: "var(--terracotta)",
-                transform: "rotate(-2deg)",
-                display: "inline-block",
-              }}
-            >
-              still stumped?
-            </div>
-            <p
-              style={{
-                fontSize: 15,
-                color: "var(--ink-70)",
-                marginTop: 12,
-                lineHeight: 1.6,
-              }}
-            >
-              The events team is in Slack at{" "}
-              <strong style={{ color: "var(--ink)" }}>{slackChannel}</strong>{" "}
-              &mdash; fastest way to get an answer.
-            </p>
+              );
+            })}
           </div>
-        )}
+
+          {hasSide && (
+            <aside
+              className="split-side sticky-side"
+              style={{ display: "flex", flexDirection: "column", gap: 16 }}
+            >
+              {hasContact && (
+                <div className="panel">
+                  <span className="icon-tile">
+                    <Icon name="message" size={20} />
+                  </span>
+                  <h2
+                    className="h3"
+                    style={{ marginTop: 16, fontSize: 20, letterSpacing: "-0.015em" }}
+                  >
+                    Still have questions?
+                  </h2>
+                  <p className="body" style={{ marginTop: 8, lineHeight: 1.6 }}>
+                    {slackChannel ? (
+                      <>
+                        Post in{" "}
+                        <span style={{ color: "var(--ink)", fontWeight: 500 }}>
+                          {slackChannel}
+                        </span>{" "}
+                        on Slack — the fastest way to reach the events team.
+                      </>
+                    ) : (
+                      <>Email the events team and we’ll get back to you.</>
+                    )}
+                  </p>
+                  {supportEmail && (
+                    <a
+                      href={`mailto:${supportEmail}`}
+                      className="btn btn-secondary btn-block"
+                      style={{ marginTop: 20, whiteSpace: "normal", overflowWrap: "anywhere" }}
+                    >
+                      {supportEmail}
+                    </a>
+                  )}
+                </div>
+              )}
+
+              {links.length > 0 && (
+                <nav
+                  aria-label="Related pages"
+                  style={{ display: "flex", flexDirection: "column", padding: "0 4px" }}
+                >
+                  {links.map((l, i) => (
+                    <Link
+                      key={l.href}
+                      href={l.href}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: 12,
+                        minHeight: 44,
+                        fontSize: 15,
+                        fontWeight: 500,
+                        color: "var(--ink)",
+                        borderBottom:
+                          i === links.length - 1 ? undefined : "1px solid var(--line)",
+                      }}
+                    >
+                      {l.label}
+                      <Icon
+                        name="arrow-right"
+                        size={16}
+                        strokeWidth={2}
+                        style={{ color: "var(--ink-muted)" }}
+                      />
+                    </Link>
+                  ))}
+                </nav>
+              )}
+            </aside>
+          )}
+        </div>
       </div>
     </div>
   );
