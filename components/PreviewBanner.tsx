@@ -24,13 +24,13 @@ export function PreviewBanner({ authBypassed }: { authBypassed: boolean }) {
     <div
       role="status"
       style={{
-        background: "var(--warn, #D97706)",
-        color: "#FFFFFF",
-        padding: "8px 16px",
-        fontSize: 13,
+        background: "var(--warn-soft, #FBF3E4)",
+        color: "var(--warn, #8A5300)",
+        borderBottom: "1px solid color-mix(in srgb, var(--warn, #8A5300) 20%, transparent)",
+        padding: "10px 16px",
+        fontSize: 14,
         fontWeight: 500,
         textAlign: "center",
-        letterSpacing: "0.02em",
       }}
     >
       {message}

@@ -1,8 +1,13 @@
 import Image from "next/image";
 import type { CSSProperties, ReactNode } from "react";
+import { Icon } from "./Icon";
 
 export type ImgPhVariant = "ocean" | "palms" | "sunset" | "pool" | "sand" | "night";
 
+/**
+ * Photo slot. Renders the image when `src` is set, on a flat tinted
+ * placeholder that also shows while it loads (or when no photo exists yet).
+ */
 export function ImgPh({
   variant = "ocean",
   src,
@@ -13,6 +18,7 @@ export function ImgPh({
   children,
   caption,
   priority = false,
+  sizes = "(max-width: 900px) 100vw, 50vw",
 }: {
   variant?: ImgPhVariant;
   src?: string;
@@ -23,37 +29,36 @@ export function ImgPh({
   children?: ReactNode;
   caption?: string;
   priority?: boolean;
+  sizes?: string;
 }) {
-  const base: CSSProperties = ratio === "unset" ? { ...style } : { aspectRatio: ratio, ...style };
+  const base: CSSProperties =
+    ratio === "unset" ? { ...style } : { aspectRatio: ratio, ...style };
   return (
-    <div style={{ width: "100%" }}>
+    <figure style={{ margin: 0, width: "100%" }}>
       <div className={`img-ph img-${variant}`} style={base}>
         {src && (
           <Image
             src={src}
             alt={alt || label || ""}
             fill
-            sizes="(max-width: 900px) 100vw, 50vw"
+            sizes={sizes}
             priority={priority}
             style={{ objectFit: "cover", zIndex: 0 }}
           />
         )}
-        {label && <span className="img-ph-label">{label}</span>}
+        {label && (
+          <span className="img-ph-label">
+            {!src && <Icon name="image" size={14} strokeWidth={2} />}
+            {label}
+          </span>
+        )}
         {children}
       </div>
       {caption && (
-        <div
-          className="mono"
-          style={{
-            fontSize: 11,
-            color: "var(--ink-55)",
-            marginTop: 10,
-            letterSpacing: "0.02em",
-          }}
-        >
+        <figcaption style={{ fontSize: 14, color: "var(--ink-muted)", marginTop: 12 }}>
           {caption}
-        </div>
+        </figcaption>
       )}
-    </div>
+    </figure>
   );
 }

@@ -27,21 +27,11 @@ export default function GlobalError({
       }}
     >
       <div style={{ maxWidth: 520, textAlign: "center" }}>
-        <div className="eyebrow" style={{ color: "var(--terracotta)" }}>
-          Something went wrong
-        </div>
-        <h1 className="display" style={{ fontSize: 48, marginTop: 12 }}>
+        <div className="kicker">Something went wrong</div>
+        <h1 className="h1" style={{ marginTop: 10 }}>
           We hit a snag.
         </h1>
-        <p
-          className="serif"
-          style={{
-            marginTop: 16,
-            color: "var(--ink-70)",
-            fontStyle: "italic",
-            lineHeight: 1.5,
-          }}
-        >
+        <p className="lede" style={{ marginTop: 16, marginInline: "auto" }}>
           Try again. If it keeps happening, reach out to your event organizer.
         </p>
         <button

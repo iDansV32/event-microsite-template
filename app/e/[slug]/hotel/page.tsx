@@ -1,8 +1,16 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
+import type { ReactNode } from "react";
+import { Icon, type IconName } from "@/components/Icon";
+import { ImgPh, type ImgPhVariant } from "@/components/ImgPh";
 import { PageHeader } from "@/components/PageHeader";
-import { ImgPh } from "@/components/ImgPh";
 import { loadEvent } from "@/lib/content";
 import { formatMonthDay } from "@/lib/format";
+import type { ImageSlot } from "@/lib/schemas";
+
+const PHOTO_VARIANTS: ImgPhVariant[] = ["ocean", "pool", "palms", "sunset"];
+const NOTE_ICONS: IconName[] = ["car", "sun", "shirt"];
+const SMALL_PHOTO_HEIGHT = "clamp(160px, 17vw, 220px)";
 
 export default async function HotelPage({
   params,
@@ -10,8 +18,11 @@ export default async function HotelPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
+  const base = `/e/${slug}`;
   const { content, meta } = loadEvent(slug);
   if (!meta.enabledSections.includes("hotel")) notFound();
+  const registrationEnabled = meta.enabledSections.includes("registration");
+  const expensingEnabled = meta.enabledSections.includes("expensing");
   const registrationIsOpen = content.registration.isOpen;
   const registrationHasDeadline = !!content.registration.closesISO;
   const closesDisplay = content.registration.closesISO
@@ -20,117 +31,109 @@ export default async function HotelPage({
   const opensDisplay = content.registration.opensISO
     ? formatMonthDay(content.registration.opensISO)
     : "soon";
-  const cityShort = content.venue.cityShort ?? content.venue.city;
-  const hotelEditorial = content.hotel;
+  const hotel = content.hotel;
+  const airport = content.airport;
+  const flightsNote = hotel?.flightsNote;
+  const passportNote = hotel?.passportNote;
+  const fieldNotes = hotel?.fieldNotes ?? [];
+  const [leadPhoto, widePhoto, ...smallPhotos] = hotel?.hero ?? [];
+
+  // Neutral default heading, derived from what travel content is configured.
+  const travelTitle = hotel?.travelTitle
+    ? [hotel.travelTitle.main, hotel.travelTitle.emphasis].filter(Boolean).join(" ")
+    : airport && passportNote
+      ? "Flights, transfers, passports"
+      : airport
+        ? "Flights & transfers"
+        : "Travel";
+
+  const roomingSteps = [
+    registrationHasDeadline
+      ? `Register by ${closesDisplay} (${registrationIsOpen ? "open now" : `opens ${opensDisplay}`} — form + travel booking)`
+      : `Register via the registration page (${registrationIsOpen ? "open now" : `opens ${opensDisplay}`}) — final deadline coming soon`,
+    "Events team adds you to the rooming list",
+    "You receive your confirmation directly from the hotel",
+  ];
+
+  const rates = content.rates;
+  const rateCells = [
+    { amount: rates?.extensionEmployee, label: "Extra nights · employees" },
+    { amount: rates?.extensionPlusOne, label: "Extra nights · plus-ones" },
+    { amount: rates?.plusOne, label: "Plus-one during the event" },
+  ].filter((cell): cell is { amount: number; label: string } => cell.amount !== undefined);
+
   return (
-    <div className="page-in">
+    <div className="page-in page-end">
       <PageHeader
-        eyebrow="Where you'll stay"
-        title={
-          <>
-            Hotel
-            <br />& <em style={{ fontStyle: "italic" }}>travel.</em>
-          </>
-        }
-        lede={
-          hotelEditorial?.lede ??
-          `Everything you need to get to ${content.venue.city}.`
-        }
+        eyebrow="Hotel & travel"
+        title={content.venue.name}
+        lede={hotel?.lede ?? `Everything you need to get to ${content.venue.city}.`}
       />
 
-      {hotelEditorial?.hero && hotelEditorial.hero.length > 0 && (() => {
-        // The "hotel-mosaic" CSS expects exactly 4 slots in a specific layout:
-        //   [0] tall-left (row 1 / span 2)
-        //   [1] mid-top
-        //   [2] mid-bot
-        //   [3] wide-right (col 2 / span 2)
-        // Events with fewer images lose the bespoke slot spans; they still
-        // render, just in default grid order.
-        const variants = ["ocean", "pool", "palms", "sunset"] as const;
-        const hero = hotelEditorial.hero;
-        const wrap = [
-          { gridRow: "1 / span 2" } as const,
-          undefined,
-          undefined,
-          { gridColumn: "2 / span 2" } as const,
-        ];
-        return (
-          <section className="container-ed" style={{ paddingBottom: 96 }}>
-            <div className="hotel-mosaic">
-              {hero.map((img, i) => {
-                const imgNode = (
-                  <ImgPh
-                    variant={variants[i % variants.length]}
-                    src={img.src}
-                    alt={img.alt}
-                    label={img.label}
-                    ratio="unset"
-                    style={{ height: "100%", aspectRatio: "unset" }}
-                  />
-                );
-                const outer = wrap[i];
-                return outer ? (
-                  <div key={`hotel-hero-${i}`} style={outer}>
-                    {imgNode}
-                  </div>
-                ) : (
-                  <div key={`hotel-hero-${i}`} style={{ display: "contents" }}>
-                    {imgNode}
-                  </div>
-                );
-              })}
+      {/* PHOTO GRID: one large, one wide, then small ones; stacks on phones. */}
+      {leadPhoto && (
+        <section className="container" style={{ paddingTop: 40 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
+            <div style={{ flex: "3 1 480px", minWidth: 0 }}>
+              <GridPhoto
+                img={leadPhoto}
+                variant={PHOTO_VARIANTS[0]}
+                height="clamp(260px, 36vw, 452px)"
+                sizes="(max-width: 900px) 100vw, 660px"
+                priority
+              />
             </div>
-            <div className="ed-flex items-center" style={{ marginTop: 20, gap: 20 }}>
+            {widePhoto && (
               <div
-                className="mono"
-                style={{ fontSize: 11, color: "var(--ink-55)", letterSpacing: "0.08em" }}
-              >
-                {content.venue.name.toUpperCase()}
-                {content.venue.neighborhood && ` · ${content.venue.neighborhood.toUpperCase()}`}
-              </div>
-              <div style={{ flex: 1, height: 1, background: "var(--ink-12)" }} />
-              {content.venue.url && (
-                <a
-                  href={content.venue.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="btn-link"
-                  style={{ fontSize: 13 }}
-                >
-                  Resort site →
-                </a>
-              )}
-            </div>
-          </section>
-        );
-      })()}
-
-      <section className="container-ed" style={{ paddingBottom: 96 }}>
-        <div className="ed-grid grid-2" style={{ gap: 24 }}>
-          <div className="card">
-            <div className="eyebrow eyebrow-accent">The venue</div>
-            <h2
-              className="display"
-              style={{ fontSize: 40, marginTop: 12, marginBottom: 20 }}
-            >
-              {content.venue.name}
-            </h2>
-            {hotelEditorial?.intro && (
-              <p
-                className="serif"
                 style={{
-                  fontSize: 17,
-                  lineHeight: 1.55,
-                  color: "var(--ink-70)",
-                  fontStyle: "italic",
-                  marginBottom: 28,
+                  flex: "2 1 300px",
+                  minWidth: 0,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 12,
                 }}
               >
-                {hotelEditorial.intro}
-              </p>
+                <GridPhoto
+                  img={widePhoto}
+                  variant={PHOTO_VARIANTS[1]}
+                  height={SMALL_PHOTO_HEIGHT}
+                  sizes="(max-width: 900px) 100vw, 450px"
+                />
+                {smallPhotos.length > 0 && (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
+                    {smallPhotos.map((img, i) => (
+                      <div key={`hotel-photo-${i + 2}`} style={{ flex: "1 1 140px", minWidth: 0 }}>
+                        <GridPhoto
+                          img={img}
+                          variant={PHOTO_VARIANTS[(i + 2) % PHOTO_VARIANTS.length]}
+                          height={SMALL_PHOTO_HEIGHT}
+                          sizes="(max-width: 900px) 50vw, 225px"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
+          </div>
+        </section>
+      )}
 
+      {/* WHERE YOU'LL STAY + ROOMING */}
+      <section className="container section split">
+        <div className="split-main">
+          <div className="kicker">The venue</div>
+          <h2 className="h2" style={{ marginTop: 8 }}>
+            Where you&rsquo;ll stay
+          </h2>
+          {hotel?.intro && (
+            <p className="lede" style={{ marginTop: 16, maxWidth: 560, fontSize: 17 }}>
+              {hotel.intro}
+            </p>
+          )}
+          <div className="rows" style={{ marginTop: 28 }}>
             <InfoRow label="Address" value={content.venue.address} />
+            <InfoRow label="Dates" value={content.dates.display} />
             <InfoRow
               label="Room block"
               value={
@@ -139,298 +142,251 @@ export default async function HotelPage({
                   : "Managed by the events team — register to be on the rooming list. Final deadline coming soon."
               }
             />
-
-            <div
-              style={{
-                marginTop: 28,
-                padding: 24,
-                background: "var(--bg-deep)",
-                borderRadius: 12,
-              }}
-            >
-              <div className="eyebrow eyebrow-accent" style={{ marginBottom: 16 }}>
-                How rooming works
-              </div>
-              <ol
-                style={{
-                  margin: 0,
-                  paddingLeft: 0,
-                  listStyle: "none",
-                  display: "grid",
-                  gap: 14,
-                }}
-              >
-                {[
-                  registrationHasDeadline
-                    ? `Register by ${closesDisplay} (${registrationIsOpen ? "open now" : `opens ${opensDisplay}`} — form + travel booking)`
-                    : `Register via the registration page (${registrationIsOpen ? "open now" : `opens ${opensDisplay}`}) — final deadline coming soon`,
-                  "Events team adds you to the rooming list",
-                  "You receive your confirmation directly from the hotel",
-                ].map((t, i) => (
-                  <li
-                    key={i}
-                    style={{
-                      display: "flex",
-                      gap: 14,
-                      fontSize: 14,
-                      lineHeight: 1.55,
-                    }}
-                  >
-                    <span
-                      className="serif"
-                      style={{
-                        fontSize: 22,
-                        fontStyle: "italic",
-                        color: "var(--terracotta)",
-                        minWidth: 28,
-                        lineHeight: 1,
-                      }}
-                    >
-                      0{i + 1}
-                    </span>
-                    <span>{t}</span>
-                  </li>
-                ))}
-              </ol>
-            </div>
           </div>
-
-          <div className="card">
-            <div className="eyebrow eyebrow-accent">Getting there</div>
-            <h2
-              className="display"
-              style={{ fontSize: 40, marginTop: 12, marginBottom: 28 }}
+          {content.venue.url && (
+            <a
+              href={content.venue.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="link-arrow"
+              style={{ marginTop: 16 }}
             >
-              {(() => {
-                if (hotelEditorial?.travelTitle) {
-                  const { main, emphasis } = hotelEditorial.travelTitle;
-                  return (
-                    <>
-                      {main}
-                      {emphasis && (
-                        <>
-                          <br />
-                          <em style={{ fontStyle: "italic" }}>{emphasis}</em>
-                        </>
-                      )}
-                    </>
-                  );
-                }
-                // Neutral default, derived from what other travel content is
-                // configured so the title reflects what's actually on the page.
-                if (content.airport && hotelEditorial?.passportNote) {
-                  return (
-                    <>
-                      Flights, transfers,
-                      <br />
-                      <em style={{ fontStyle: "italic" }}>passports.</em>
-                    </>
-                  );
-                }
-                if (content.airport) {
-                  return (
-                    <>
-                      Flights &amp;<br />
-                      <em style={{ fontStyle: "italic" }}>transfers.</em>
-                    </>
-                  );
-                }
-                return (
-                  <em style={{ fontStyle: "italic" }}>Travel.</em>
-                );
-              })()}
-            </h2>
+              Visit the resort website
+              <Icon name="external" size={15} strokeWidth={2} />
+            </a>
+          )}
+        </div>
 
-            {content.airport && (
-              <div
+        <div className="split-side panel" style={{ flexBasis: 340 }}>
+          <h3 className="h3">How rooming works</h3>
+          <ol
+            style={{
+              margin: "20px 0 0",
+              padding: 0,
+              listStyle: "none",
+              display: "flex",
+              flexDirection: "column",
+              gap: 16,
+            }}
+          >
+            {roomingSteps.map((step, i) => (
+              <li
+                key={`rooming-${i}`}
                 style={{
-                  padding: 20,
-                  borderRadius: 12,
-                  background: "var(--tint-teal)",
-                  marginBottom: 24,
                   display: "flex",
-                  gap: 16,
-                  alignItems: "center",
+                  alignItems: "flex-start",
+                  gap: 14,
+                  fontSize: 15,
+                  lineHeight: 1.5,
                 }}
               >
-                <div
-                  className="serif"
+                <span
+                  aria-hidden="true"
                   style={{
-                    fontSize: 42,
-                    color: "var(--teal)",
-                    lineHeight: 1,
-                    fontStyle: "italic",
-                    fontWeight: 300,
+                    flex: "0 0 auto",
+                    width: 28,
+                    height: 28,
+                    boxSizing: "border-box",
+                    borderRadius: 999,
+                    background: "var(--bg)",
+                    border: "1px solid var(--line-strong)",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 13,
+                    fontWeight: 600,
                   }}
                 >
-                  {content.airport.code}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div className="serif" style={{ fontSize: 18, fontWeight: 400 }}>
-                    {content.airport.name}
-                  </div>
-                  {content.airport.detail && (
-                    <div className="muted" style={{ fontSize: 13, marginTop: 2 }}>
-                      {content.airport.detail}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            <div className="eyebrow" style={{ marginBottom: 12 }}>
-              Booking flights
-            </div>
-            <p
-              style={{
-                fontSize: 14,
-                lineHeight: 1.6,
-                color: "var(--ink-70)",
-                marginBottom: 16,
-              }}
+                  {i + 1}
+                </span>
+                <span style={{ paddingTop: 3 }}>{step}</span>
+              </li>
+            ))}
+          </ol>
+          {registrationEnabled && (
+            <Link
+              href={`${base}/registration`}
+              className="btn btn-primary btn-block"
+              style={{ marginTop: 24 }}
             >
-              {content.airport
-                ? `Flights to ${content.airport.name} (${content.airport.code}) will be coordinated by the events team.`
-                : "Flights will be coordinated by the events team."}
-              {hotelEditorial?.flightsNote && (
-                <>
-                  {" "}
-                  {hotelEditorial.flightsNote}
-                </>
-              )}
-            </p>
-
-            {hotelEditorial?.passportNote && (
-              <div
-                style={{
-                  padding: 20,
-                  borderRadius: 12,
-                  background: "rgba(155,58,40,0.08)",
-                  border: "1px solid rgba(155,58,40,0.22)",
-                  marginBottom: 16,
-                }}
-              >
-                <div
-                  className="ed-flex items-center"
-                  style={{ marginBottom: 8, gap: 12 }}
-                >
-                  <span
-                    className="serif"
-                    style={{
-                      fontSize: 20,
-                      color: "var(--danger)",
-                      fontStyle: "italic",
-                    }}
-                  >
-                    !
-                  </span>
-                  <div className="eyebrow" style={{ color: "var(--danger)", margin: 0 }}>
-                    Passport & visa
-                  </div>
-                </div>
-                <p
-                  style={{
-                    fontSize: 13.5,
-                    lineHeight: 1.55,
-                    color: "var(--ink-70)",
-                    margin: 0,
-                  }}
-                >
-                  {hotelEditorial.passportNote}
-                </p>
-              </div>
-            )}
-
-            {(content.rates?.extensionEmployee || content.rates?.extensionPlusOne) && (
-              <div
-                style={{
-                  padding: 20,
-                  borderRadius: 12,
-                  background: "var(--bg-deep)",
-                }}
-              >
-                <div className="eyebrow" style={{ marginBottom: 10 }}>
-                  Stay extensions
-                </div>
-                <div style={{ fontSize: 14, lineHeight: 1.6, color: "var(--ink-70)" }}>
-                  Pre- and post-event nights available
-                  {content.rates?.extensionEmployee !== undefined && (
-                    <>
-                      {" at "}
-                      <strong style={{ color: "var(--ink)" }}>
-                        ${content.rates.extensionEmployee}/day
-                      </strong>{" "}
-                      (employees)
-                    </>
-                  )}
-                  {content.rates?.extensionPlusOne !== undefined && (
-                    <>
-                      {" or "}
-                      <strong style={{ color: "var(--ink)" }}>
-                        ${content.rates.extensionPlusOne}/day
-                      </strong>{" "}
-                      (plus-ones)
-                    </>
-                  )}
-                  .
-                </div>
-              </div>
-            )}
-          </div>
+              Go to registration
+              <Icon name="arrow-right" size={16} strokeWidth={2} />
+            </Link>
+          )}
         </div>
       </section>
 
-      {hotelEditorial?.fieldNotes && hotelEditorial.fieldNotes.length > 0 && (
-        <section className="container-ed" style={{ paddingBottom: 120 }}>
-          <div className="eyebrow eyebrow-accent" style={{ marginBottom: 16 }}>
-            Field notes
-          </div>
-          <h2
-            className="display"
-            style={{ fontSize: 56, marginBottom: 48, lineHeight: 0.95 }}
-          >
-            A few things
-            <br />
-            <em style={{ fontStyle: "italic" }}>to know.</em>
+      {/* GETTING THERE */}
+      {(flightsNote || airport || passportNote) && (
+        <section className="container section">
+          <div className="kicker">Getting there</div>
+          <h2 className="h2" style={{ marginTop: 8, marginBottom: 32 }}>
+            {travelTitle}
           </h2>
-          <div className="ed-grid grid-3" style={{ gap: 24 }}>
-            {hotelEditorial.fieldNotes.map((note, i) => (
-              <div key={`${note.title}-${i}`}>
-                <div
-                  className="serif"
-                  style={{
-                    fontSize: 40,
-                    color: "var(--terracotta)",
-                    fontStyle: "italic",
-                    fontWeight: 300,
-                    lineHeight: 1,
-                    marginBottom: 16,
-                  }}
-                >
-                  {romanize(i + 1)}.
+          <div className="cards cards-3">
+            {flightsNote && (
+              <TravelCard
+                mark={
+                  <span className="icon-tile">
+                    <Icon name="plane" />
+                  </span>
+                }
+                title="Flights"
+                body={flightsNote}
+              />
+            )}
+            {airport && (
+              <TravelCard
+                mark={
+                  <span
+                    className="icon-tile"
+                    style={{
+                      width: "auto",
+                      alignSelf: "flex-start",
+                      padding: "0 12px",
+                      fontSize: 16,
+                      fontWeight: 700,
+                      letterSpacing: "0.04em",
+                    }}
+                  >
+                    {airport.code}
+                  </span>
+                }
+                title={airport.name}
+                body={airport.detail}
+              />
+            )}
+            {passportNote && (
+              <TravelCard
+                mark={
+                  <span className="icon-tile">
+                    <Icon name="passport" />
+                  </span>
+                }
+                title="Passports"
+                body={passportNote}
+              />
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* GOOD TO KNOW */}
+      {fieldNotes.length > 0 && (
+        <section className="container section-md">
+          <h2
+            style={{
+              margin: "0 0 24px",
+              fontSize: 28,
+              lineHeight: 1.2,
+              fontWeight: 600,
+              letterSpacing: "-0.02em",
+            }}
+          >
+            Good to know
+          </h2>
+          <div
+            className="hairline"
+            style={{ display: "flex", flexWrap: "wrap", gap: 32, paddingTop: 28 }}
+          >
+            {fieldNotes.map((note, i) => (
+              <div
+                key={`${note.title}-${i}`}
+                style={{
+                  flex: "1 1 280px",
+                  minWidth: 0,
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: 14,
+                }}
+              >
+                <Icon
+                  name={NOTE_ICONS[i % NOTE_ICONS.length]}
+                  style={{ color: "var(--ink-muted)", marginTop: 2 }}
+                />
+                <div style={{ minWidth: 0 }}>
+                  <h3 className="h4">{note.title}</h3>
+                  <p className="body" style={{ marginTop: 6 }}>
+                    {note.body}
+                  </p>
                 </div>
-                <h3
-                  className="serif"
-                  style={{
-                    fontSize: 22,
-                    fontWeight: 400,
-                    letterSpacing: "-0.01em",
-                  }}
-                >
-                  {note.title}
-                </h3>
-                <p
-                  style={{
-                    fontSize: 14,
-                    lineHeight: 1.65,
-                    color: "var(--ink-70)",
-                    marginTop: 12,
-                  }}
-                >
-                  {note.body}
-                </p>
               </div>
             ))}
+          </div>
+        </section>
+      )}
+
+      {/* EXTRA NIGHTS & GUESTS */}
+      {rateCells.length > 0 && (
+        <section className="container section-md">
+          <div
+            className="panel"
+            style={{
+              borderRadius: 24,
+              display: "flex",
+              flexWrap: "wrap",
+              alignItems: "center",
+              gap: "32px 48px",
+            }}
+          >
+            <div style={{ flex: "1 1 320px", minWidth: 0 }}>
+              <h2
+                style={{
+                  margin: 0,
+                  fontSize: 26,
+                  lineHeight: 1.2,
+                  fontWeight: 600,
+                  letterSpacing: "-0.02em",
+                }}
+              >
+                Staying longer or bringing a guest?
+              </h2>
+              <p className="body" style={{ marginTop: 10, lineHeight: 1.6 }}>
+                Daily rates at {content.venue.name}.
+              </p>
+              {expensingEnabled && (
+                <Link href={`${base}/expensing`} className="link-arrow" style={{ marginTop: 8 }}>
+                  What&rsquo;s covered
+                  <Icon name="arrow-right" size={16} strokeWidth={2} />
+                </Link>
+              )}
+            </div>
+            <div
+              style={{
+                flex: "2 1 420px",
+                minWidth: 0,
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 12,
+              }}
+            >
+              {rateCells.map((cell) => (
+                <div
+                  key={cell.label}
+                  style={{
+                    flex: "1 1 160px",
+                    background: "var(--bg)",
+                    borderRadius: 14,
+                    padding: 20,
+                    boxSizing: "border-box",
+                  }}
+                >
+                  <div
+                    className="tabular"
+                    style={{ fontSize: 28, fontWeight: 600, lineHeight: 1.2, letterSpacing: "-0.02em" }}
+                  >
+                    ${cell.amount}
+                    <span style={{ fontSize: 15, fontWeight: 500, color: "var(--ink-muted)" }}>
+                      {" "}
+                      /day
+                    </span>
+                  </div>
+                  <div className="text-muted" style={{ marginTop: 6, fontSize: 14, lineHeight: 1.45 }}>
+                    {cell.label}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
       )}
@@ -438,39 +394,61 @@ export default async function HotelPage({
   );
 }
 
+/** Photo slot with a fixed height. The label only marks an empty slot. */
+function GridPhoto({
+  img,
+  variant,
+  height,
+  sizes,
+  priority = false,
+}: {
+  img: ImageSlot;
+  variant: ImgPhVariant;
+  height: string;
+  sizes: string;
+  priority?: boolean;
+}) {
+  return (
+    <ImgPh
+      variant={variant}
+      src={img.src}
+      alt={img.alt}
+      label={img.src ? undefined : img.label}
+      ratio="unset"
+      style={{ height }}
+      sizes={sizes}
+      priority={priority}
+    />
+  );
+}
+
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "110px 1fr",
-        gap: 16,
-        padding: "14px 0",
-        borderTop: "1px solid var(--ink-12)",
-        fontSize: 14,
-      }}
-    >
-      <div className="eyebrow">{label}</div>
-      <div style={{ color: "var(--ink-70)", lineHeight: 1.55 }}>{value}</div>
+    <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 24px", padding: "16px 0" }}>
+      <div className="text-muted" style={{ flex: "0 0 140px", fontSize: 14 }}>
+        {label}
+      </div>
+      <div style={{ flex: "1 1 240px", minWidth: 0, fontSize: 15, fontWeight: 500, lineHeight: 1.5 }}>
+        {value}
+      </div>
     </div>
   );
 }
 
-const ROMAN = [
-  "i",
-  "ii",
-  "iii",
-  "iv",
-  "v",
-  "vi",
-  "vii",
-  "viii",
-  "ix",
-  "x",
-  "xi",
-  "xii",
-];
-
-function romanize(n: number): string {
-  return ROMAN[n - 1] ?? String(n);
+function TravelCard({
+  mark,
+  title,
+  body,
+}: {
+  mark: ReactNode;
+  title: string;
+  body?: string;
+}) {
+  return (
+    <div className="card" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      {mark}
+      <h3 className="h3">{title}</h3>
+      {body && <p className="body">{body}</p>}
+    </div>
+  );
 }

@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { PageHeader } from "@/components/PageHeader";
 import { authorizeEventRequest } from "@/lib/auth/guard";
 import { loadEvent } from "@/lib/content";
 import { formatMonthDay } from "@/lib/format";
@@ -112,6 +113,11 @@ export default async function RegistrationPage({
       eventShortName={content.brand.shortName}
       cityShort={cityShort}
       slackChannel={content.contact?.slackChannel}
+      datesDisplay={content.dates.display}
+      venueName={content.venue.name}
+      rates={content.rates}
+      supportEmail={content.contact?.supportEmail}
+      faqEnabled={meta.enabledSections.includes("faq")}
     />
   );
 }
@@ -125,49 +131,27 @@ export default async function RegistrationPage({
  */
 function RegistrationPreviewNotice({ slug }: { slug: string }) {
   return (
-    <main
-      style={{
-        minHeight: "60vh",
-        display: "grid",
-        placeItems: "center",
-        padding: "48px 24px",
-      }}
-    >
-      <div style={{ maxWidth: 520, textAlign: "center" }}>
-        <div className="eyebrow eyebrow-accent">Preview mode</div>
-        <h1
-          className="display"
-          style={{
-            fontSize: "clamp(32px, 6vw, 44px)",
-            marginTop: 12,
-            lineHeight: 1.1,
-            letterSpacing: "-0.02em",
-          }}
-        >
-          Registration is hidden here.
-        </h1>
-        <p
-          className="serif"
-          style={{
-            fontSize: 17,
-            fontStyle: "italic",
-            color: "var(--ink-70)",
-            marginTop: 20,
-            lineHeight: 1.6,
-          }}
-        >
-          The registration form writes real attendee data, so it only
-          runs with a real login. To test the full RSVP flow, set up
-          Supabase + Resend per{" "}
-          <code>docs/live-infra-setup.md</code>, seed an invite, and
-          log in via the normal magic-link flow.
-        </p>
+    <div className="page-in">
+      <PageHeader
+        eyebrow="Preview mode"
+        title="Registration is hidden here"
+        lede={
+          <>
+            The registration form writes real attendee data, so it only
+            runs with a real login. To test the full RSVP flow, set up
+            Supabase + Resend per{" "}
+            <code>docs/live-infra-setup.md</code>, seed an invite, and
+            log in via the normal magic-link flow.
+          </>
+        }
+      />
+      <div className="container page-end">
         <div style={{ marginTop: 32 }}>
           <Link href={`/e/${slug}`} className="btn btn-primary">
             Back to the event
           </Link>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

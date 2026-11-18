@@ -1,13 +1,10 @@
-"use client";
-
-import { useState } from "react";
+import { Icon } from "@/components/Icon";
+import { PageHeader } from "@/components/PageHeader";
 import type {
   ExpenseItem,
   HowToSubmitCallout,
   HowToSubmitStep,
 } from "@/lib/schemas";
-
-type Tab = "covered" | "not" | "how";
 
 export function ExpensingView({
   brand,
@@ -29,378 +26,307 @@ export function ExpensingView({
     callouts?: HowToSubmitCallout[];
   };
 }) {
-  const hasHowTo = !!howToSubmit;
-  const [tab, setTab] = useState<Tab>("covered");
-  return (
-    <div className="page-in">
-      <div className="container-reg" style={{ paddingTop: 72, paddingBottom: 96 }}>
-        <div className="eyebrow eyebrow-accent">Finance &middot; travel policy</div>
-        <h1
-          className="display"
-          style={{
-            fontSize: "clamp(44px, 11vw, 84px)",
-            marginTop: 16,
-            letterSpacing: "-0.03em",
-            lineHeight: 0.95,
-          }}
-        >
-          What&rsquo;s covered,
-          <br />
-          what&rsquo;s <em style={{ fontStyle: "italic" }}>not.</em>
-        </h1>
-        <p
-          className="serif"
-          style={{
-            fontSize: 20,
-            color: "var(--ink-70)",
-            fontStyle: "italic",
-            marginTop: 28,
-            maxWidth: 620,
-            lineHeight: 1.55,
-          }}
-        >
-          Based on the {brand} travel policy.
-          {slackChannel && (
-            <> When in doubt, post in {slackChannel} before you book.</>
-          )}
-        </p>
-
-        <div
-          role="tablist"
-          aria-label="Expense policy view"
-          style={{
-            marginTop: 56,
-            display: "inline-flex",
-            gap: 4,
-            padding: 4,
-            background: "var(--bg-deep)",
-            borderRadius: 999,
-          }}
-        >
-          {(
-            [
-              { v: "covered" as const, t: "Covered", n: covered.length },
-              { v: "not" as const, t: "Not covered", n: notCovered.length },
-              ...(hasHowTo
-                ? [{ v: "how" as const, t: "How to submit" }]
-                : []),
-            ]
-          ).map((o) => {
-            const on = tab === o.v;
-            const panelId = `expensing-panel-${o.v}`;
-            return (
-              <button
-                key={o.v}
-                role="tab"
-                id={`expensing-tab-${o.v}`}
-                aria-selected={on}
-                aria-controls={panelId}
-                onClick={() => setTab(o.v)}
-                style={{
-                  padding: "10px 20px",
-                  borderRadius: 999,
-                  fontSize: 13,
-                  fontWeight: 500,
-                  background: on ? "var(--ink)" : "transparent",
-                  color: on ? "var(--bg)" : "var(--ink-70)",
-                  transition: "all 0.2s",
-                }}
-              >
-                {o.t}{" "}
-                {o.n != null && (
-                  <span
-                    style={{
-                      opacity: 0.6,
-                      marginLeft: 6,
-                      fontFamily: "var(--f-mono)",
-                      fontSize: 11,
-                    }}
-                  >
-                    {o.n}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* All three panels are mounted so the tab buttons' aria-controls
-            always reference a real tabpanel; `hidden` hides the inactive
-            ones from assistive tech and the visual tree alike. */}
-        <div style={{ marginTop: 40 }}>
-          <div
-            role="tabpanel"
-            id="expensing-panel-covered"
-            aria-labelledby="expensing-tab-covered"
-            hidden={tab !== "covered"}
-            className={tab === "covered" ? "page-in" : undefined}
+  const aside =
+    submissionDeadline || travelToolUrl ? (
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        {submissionDeadline && <DeadlineCard {...submissionDeadline} />}
+        {travelToolUrl && (
+          <a
+            href={travelToolUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="btn btn-secondary btn-block"
           >
-            <PolicyList items={covered} tone="good" />
-          </div>
-          <div
-            role="tabpanel"
-            id="expensing-panel-not"
-            aria-labelledby="expensing-tab-not"
-            hidden={tab !== "not"}
-            className={tab === "not" ? "page-in" : undefined}
-          >
-            <PolicyList items={notCovered} tone="bad" />
-          </div>
-          {hasHowTo && (
-            <div
-              role="tabpanel"
-              id="expensing-panel-how"
-              aria-labelledby="expensing-tab-how"
-              hidden={tab !== "how"}
-              className={tab === "how" ? "page-in" : undefined}
-            >
-              <HowToSubmit data={howToSubmit} />
-            </div>
-          )}
-        </div>
-
-        {submissionDeadline && (
-          <div
-            className="stack-mobile"
-            style={{
-              marginTop: 64,
-              padding: 32,
-              borderRadius: 18,
-              background: "var(--ink)",
-              color: "var(--bg)",
-              display: "grid",
-              gridTemplateColumns: "auto 1fr auto",
-              gap: 28,
-              alignItems: "center",
-            }}
-          >
-            <div
-              className="serif"
-              style={{
-                fontSize: 60,
-                lineHeight: 1,
-                fontStyle: "italic",
-                color: "var(--clay)",
-              }}
-            >
-              {submissionDeadline.date}
-            </div>
-            <div>
-              <div className="eyebrow" style={{ color: "var(--clay)", marginBottom: 8 }}>
-                Expense deadline
-              </div>
-              <div
-                className="serif"
-                style={{ fontSize: 22, fontWeight: 400, letterSpacing: "-0.01em" }}
-              >
-                {submissionDeadline.body}
-              </div>
-              <div style={{ fontSize: 13, color: "rgba(245,240,232,0.7)", marginTop: 8 }}>
-                No exceptions after this date. Attach receipts to all corp-card transactions.
-              </div>
-            </div>
-            {travelToolUrl && (
-              <a
-                href={travelToolUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="btn btn-primary"
-                style={{ background: "var(--terracotta)" }}
-              >
-                Open travel tool &rarr;
-              </a>
-            )}
-          </div>
+            Open travel tool
+            <Icon name="external" size={16} />
+            <span className="sr-only">(opens in a new tab)</span>
+          </a>
         )}
       </div>
-    </div>
-  );
-}
+    ) : undefined;
 
-function PolicyList({
-  items,
-  tone,
-}: {
-  items: ExpenseItem[];
-  tone: "good" | "bad";
-}) {
-  const color = tone === "good" ? "var(--teal)" : "var(--danger)";
-  const mark = tone === "good" ? "\u2713" : "\u00d7";
   return (
-    <div style={{ borderTop: "1px solid var(--ink-12)" }}>
-      {items.map((x) => (
-        <div
-          key={x.title}
-          style={{
-            display: "grid",
-            gridTemplateColumns: "48px 1fr",
-            gap: 24,
-            padding: "24px 4px",
-            borderBottom: "1px solid var(--ink-12)",
-            alignItems: "start",
-          }}
-        >
-          <div
-            aria-hidden
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: "50%",
-              border: `1px solid ${color}`,
-              color,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 16,
-              fontFamily: "var(--f-serif)",
-              fontWeight: 400,
-            }}
-          >
-            {mark}
-          </div>
-          <div>
-            <div
-              className="serif"
-              style={{ fontSize: 20, fontWeight: 400, letterSpacing: "-0.005em" }}
-            >
-              {x.title}
-            </div>
-            <div
-              style={{
-                fontSize: 14,
-                color: "var(--ink-70)",
-                marginTop: 6,
-                lineHeight: 1.6,
-              }}
-            >
-              {x.detail}
-            </div>
-          </div>
+    <div className="page-in page-end">
+      <PageHeader
+        eyebrow="Expensing"
+        title="What’s covered"
+        lede={
+          <>
+            Based on the {brand} travel policy.
+            {slackChannel && <> When in doubt, post in {slackChannel} before you book.</>}
+          </>
+        }
+        aside={aside}
+      />
+
+      <div className="container section-sm">
+        <div className="cards cards-2" style={{ gap: 32 }}>
+          <PolicyColumn title="Covered" tone="good" items={covered} />
+          <PolicyColumn title="Not covered" tone="bad" items={notCovered} />
         </div>
-      ))}
-    </div>
-  );
-}
-
-function HowToSubmit({
-  data,
-}: {
-  data: { steps: HowToSubmitStep[]; callouts?: HowToSubmitCallout[] };
-}) {
-  return (
-    <div>
-      <div
-        style={{
-          display: "grid",
-          gap: 16,
-          gridTemplateColumns: `repeat(${data.steps.length}, minmax(0, 1fr))`,
-        }}
-      >
-        {data.steps.map((step, i) => (
-          <StepCard
-            key={i}
-            n={String(i + 1).padStart(2, "0")}
-            title={step.title}
-            detail={step.detail}
-          />
-        ))}
       </div>
-      {data.callouts && data.callouts.length > 0 && (
-        <div
-          style={{
-            display: "grid",
-            gap: 16,
-            marginTop: 16,
-            gridTemplateColumns: `repeat(${data.callouts.length}, minmax(0, 1fr))`,
-          }}
-        >
-          {data.callouts.map((c, i) => (
-            <CalloutCard key={i} title={c.title} body={c.body} tone={c.tone ?? "warn"} />
-          ))}
-        </div>
+
+      {howToSubmit && (
+        <>
+          <section className="container section-md" aria-labelledby="how-to-submit">
+            <div className="kicker">Reimbursement</div>
+            <h2 id="how-to-submit" className="h2" style={{ marginTop: 8, marginBottom: 32 }}>
+              How to submit
+            </h2>
+            <ol
+              role="list"
+              className="cards cards-3"
+              style={{ listStyle: "none", margin: 0, padding: 0 }}
+            >
+              {howToSubmit.steps.map((step, i) => (
+                <li key={i} className="card">
+                  <div
+                    className="tabular"
+                    style={{ fontSize: 14, fontWeight: 600, color: "var(--accent)" }}
+                  >
+                    {String(i + 1).padStart(2, "0")}
+                  </div>
+                  <h3 className="h3" style={{ marginTop: 28 }}>
+                    {step.title}
+                  </h3>
+                  <p className="body" style={{ marginTop: 8 }}>
+                    {step.detail}
+                  </p>
+                </li>
+              ))}
+            </ol>
+          </section>
+
+          {howToSubmit.callouts && howToSubmit.callouts.length > 0 && (
+            <div className="container" style={{ paddingTop: 16 }}>
+              <div className="cards cards-2">
+                {howToSubmit.callouts.map((c, i) => (
+                  <Callout key={i} {...c} />
+                ))}
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
 }
 
-function CalloutCard({
-  title,
-  body,
-  tone,
-}: {
-  title: string;
-  body: string;
-  tone: "warn" | "teal";
-}) {
-  const palette =
-    tone === "teal"
-      ? {
-          background: "var(--tint-teal)",
-          border: "1px solid transparent",
-          eyebrowColor: "var(--teal)",
-        }
-      : {
-          background: "color-mix(in srgb, var(--warn) 10%, transparent)",
-          border: "1px solid color-mix(in srgb, var(--warn) 30%, transparent)",
-          eyebrowColor: "var(--warn)",
-        };
+function DeadlineCard({ date, body }: { date: string; body: string }) {
+  const parsed = parseMonthDay(date);
   return (
-    <div style={{ padding: 24, borderRadius: 14, ...palette }}>
-      <div className="eyebrow" style={{ color: palette.eyebrowColor }}>
-        {title}
-      </div>
-      <p
+    <div
+      style={{
+        display: "flex",
+        gap: 16,
+        alignItems: "center",
+        padding: "20px 24px",
+        borderRadius: 16,
+        background: "var(--accent-soft)",
+      }}
+    >
+      <div
+        aria-hidden
         style={{
-          fontSize: 14,
-          color: "var(--ink-70)",
-          marginTop: 10,
-          lineHeight: 1.6,
+          flex: "0 0 auto",
+          width: 64,
+          height: 64,
+          borderRadius: 14,
+          background: "var(--bg)",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          color: parsed ? undefined : "var(--accent)",
         }}
       >
-        {body}
-      </p>
+        {parsed ? (
+          <>
+            <span
+              style={{
+                fontSize: 12,
+                fontWeight: 600,
+                color: "var(--accent)",
+                letterSpacing: "0.04em",
+              }}
+            >
+              {parsed.monthShort.toUpperCase()}
+            </span>
+            <span
+              className="tabular"
+              style={{
+                fontSize: 24,
+                fontWeight: 600,
+                lineHeight: 1.1,
+                letterSpacing: "-0.02em",
+              }}
+            >
+              {parsed.day}
+            </span>
+          </>
+        ) : (
+          <Icon name="calendar" size={24} />
+        )}
+      </div>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontSize: 16, fontWeight: 600 }}>
+          Submission deadline
+          {parsed ? (
+            <span className="sr-only">: {`${parsed.monthLong} ${parsed.day}`}</span>
+          ) : (
+            <> · {date}</>
+          )}
+        </div>
+        <p style={{ margin: "4px 0 0", fontSize: 14, lineHeight: 1.5, color: "var(--ink-muted)" }}>
+          {body}
+        </p>
+      </div>
     </div>
   );
 }
 
-function StepCard({
-  n,
+function PolicyColumn({
   title,
-  detail,
+  tone,
+  items,
 }: {
-  n: string;
   title: string;
-  detail: string;
+  tone: "good" | "bad";
+  items: ExpenseItem[];
 }) {
+  const good = tone === "good";
   return (
-    <div
-      style={{
-        padding: 24,
-        borderRadius: 14,
-        background: "var(--paper)",
-        border: "1px solid var(--ink-12)",
-      }}
-    >
+    <div>
       <div
-        className="serif"
         style={{
-          fontSize: 40,
-          color: "var(--terracotta)",
-          fontStyle: "italic",
-          fontWeight: 300,
-          lineHeight: 1,
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          paddingBottom: 16,
+          borderBottom: "1px solid var(--ink)",
         }}
       >
-        {n}
+        <span
+          className={good ? "badge-solid" : undefined}
+          style={{
+            width: 28,
+            height: 28,
+            borderRadius: 999,
+            ...(good ? {} : { background: "var(--line)", color: "var(--ink)" }),
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Icon name={good ? "check" : "x"} size={16} strokeWidth={2.25} />
+        </span>
+        <h2 className="h3" style={{ fontSize: 22, letterSpacing: "-0.02em" }}>
+          {title}
+        </h2>
       </div>
-      <div className="serif" style={{ fontSize: 20, fontWeight: 400, marginTop: 16 }}>
-        {title}
-      </div>
-      <div
-        style={{ fontSize: 13.5, color: "var(--ink-70)", marginTop: 10, lineHeight: 1.6 }}
-      >
-        {detail}
+      <ul role="list" style={{ listStyle: "none", margin: 0, padding: 0 }}>
+        {items.map((x, i) => (
+          <li
+            key={x.title}
+            style={{
+              padding: "18px 0",
+              borderBottom: i === items.length - 1 ? undefined : "1px solid var(--line)",
+            }}
+          >
+            <h3 className="h4">{x.title}</h3>
+            <p className="body" style={{ marginTop: 6 }}>
+              {x.detail}
+            </p>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function Callout({ title, body, tone = "warn" }: HowToSubmitCallout) {
+  const warn = tone === "warn";
+  const color = warn ? "var(--warn)" : "var(--accent)";
+  return (
+    <div
+      className={`callout ${warn ? "callout-warn" : "callout-accent"}`}
+      style={{ padding: 24 }}
+    >
+      <Icon name={warn ? "alert" : "info"} size={20} strokeWidth={1.9} style={{ color, marginTop: 1 }} />
+      <div style={{ minWidth: 0 }}>
+        <h3 className="h4" style={{ color }}>
+          {title}
+        </h3>
+        <p className="body" style={{ marginTop: 6 }}>
+          {body}
+        </p>
       </div>
     </div>
   );
+}
+
+const MONTHS = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
+/**
+ * Pull a month + day out of the authored deadline string for the date tile.
+ * Accepts "08/14" (MM/DD, the documented format), "14/08" when the first
+ * number can't be a month, an optional trailing year, ISO "2026-08-14",
+ * and "Aug 14" / "14 August". Returns null for anything else so the card
+ * can fall back to showing the string as written.
+ */
+function parseMonthDay(
+  raw: string,
+): { monthShort: string; monthLong: string; day: number } | null {
+  const s = raw.trim();
+  let month: number | undefined;
+  let day: number | undefined;
+
+  const iso = /^\d{4}-(\d{1,2})-(\d{1,2})/.exec(s);
+  const numeric = /^(\d{1,2})[/.\-](\d{1,2})(?:[/.\-](?:\d{2}|\d{4}))?$/.exec(s);
+  const monthFirst = /^([A-Za-z]{3,})\.?\s+(\d{1,2})(?:st|nd|rd|th)?\b/.exec(s);
+  const dayFirst = /^(\d{1,2})(?:st|nd|rd|th)?\s+([A-Za-z]{3,})\b/.exec(s);
+
+  if (iso) {
+    month = Number(iso[1]);
+    day = Number(iso[2]);
+  } else if (numeric) {
+    const a = Number(numeric[1]);
+    const b = Number(numeric[2]);
+    if (a <= 12) {
+      month = a;
+      day = b;
+    } else if (b <= 12) {
+      month = b;
+      day = a;
+    }
+  } else if (monthFirst) {
+    month = monthIndex(monthFirst[1]);
+    day = Number(monthFirst[2]);
+  } else if (dayFirst) {
+    month = monthIndex(dayFirst[2]);
+    day = Number(dayFirst[1]);
+  }
+
+  if (!month || !day || month < 1 || month > 12 || day < 1 || day > 31) return null;
+  const monthLong = MONTHS[month - 1];
+  return { monthLong, monthShort: monthLong.slice(0, 3), day };
+}
+
+function monthIndex(name: string): number | undefined {
+  const key = name.slice(0, 3).toLowerCase();
+  const i = MONTHS.findIndex((m) => m.slice(0, 3).toLowerCase() === key);
+  return i === -1 ? undefined : i + 1;
 }

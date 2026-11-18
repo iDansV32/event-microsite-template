@@ -1,30 +1,13 @@
 import type { Metadata } from "next";
-import { Source_Serif_4, Inter, Caveat, JetBrains_Mono } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 
-const serif = Source_Serif_4({
-  subsets: ["latin"],
-  variable: "--font-serif",
-  weight: ["300", "400", "500", "600"],
-  style: ["normal", "italic"],
-  display: "swap",
-});
+// One family across the site. Older --font-serif / --font-script / --font-mono
+// references resolve to this through the aliases in globals.css.
 const sans = Inter({
   subsets: ["latin"],
   variable: "--font-sans",
-  weight: ["300", "400", "500", "600"],
-  display: "swap",
-});
-const script = Caveat({
-  subsets: ["latin"],
-  variable: "--font-script",
-  weight: ["400", "500", "600"],
-  display: "swap",
-});
-const mono = JetBrains_Mono({
-  subsets: ["latin"],
-  variable: "--font-mono",
-  weight: ["400", "500"],
+  weight: ["400", "500", "600", "700"],
   display: "swap",
 });
 
@@ -43,7 +26,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${serif.variable} ${sans.variable} ${script.variable} ${mono.variable}`}>
+    <html lang="en" className={sans.variable}>
       <body className="min-h-screen antialiased">{children}</body>
     </html>
   );

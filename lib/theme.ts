@@ -22,17 +22,28 @@ export function themeToCSSVars(theme: Theme): CSSProperties {
 
     // Derived — re-emitted because CSS var() substitution inside a
     // custom-property value resolves at the DEFINING element's compute time.
+    // Semantic aliases first: new markup reads these, not the legacy names.
+    // `terracotta` is the accent slot in the schema.
+    "--accent": c.terracotta,
+    "--accent-deep": `color-mix(in srgb, ${c.terracotta} 82%, #000 18%)`,
+    "--accent-soft": `color-mix(in srgb, ${c.terracotta} 9%, #fff 91%)`,
+    "--accent-line": `color-mix(in srgb, ${c.terracotta} 30%, #fff 70%)`,
+    "--surface": c.paper,
+    "--surface-2": `color-mix(in srgb, ${c.ink} 5%, ${c.bg} 95%)`,
+    "--line": `color-mix(in srgb, ${c.ink} 10%, ${c.bg} 90%)`,
+    "--line-strong": `color-mix(in srgb, ${c.ink} 17%, ${c.bg} 83%)`,
+
     "--ink-70": `color-mix(in srgb, ${c.ink} 70%, transparent)`,
     "--ink-55": `color-mix(in srgb, ${c.ink} 55%, transparent)`,
     "--ink-40": `color-mix(in srgb, ${c.ink} 40%, transparent)`,
     "--ink-12": `color-mix(in srgb, ${c.ink} 12%, transparent)`,
     "--ink-06": `color-mix(in srgb, ${c.ink} 6%, transparent)`,
-    "--bg-deep": `color-mix(in srgb, ${c.bg} 92%, #000 8%)`,
-    "--terracotta-deep": `color-mix(in srgb, ${c.terracotta} 85%, #000 15%)`,
-    "--tint-clay": `color-mix(in srgb, ${c.clay} 45%, ${c.bg} 55%)`,
-    "--tint-teal": `color-mix(in srgb, ${c.teal} 25%, ${c.bg} 75%)`,
-    "--tint-blush": `color-mix(in srgb, ${c.terracotta} 22%, ${c.bg} 78%)`,
-    "--tint-fog": `color-mix(in srgb, ${c.ink} 10%, ${c.bg} 90%)`,
+    "--bg-deep": `color-mix(in srgb, ${c.bg} 94%, ${c.ink} 6%)`,
+    "--terracotta-deep": `color-mix(in srgb, ${c.terracotta} 82%, #000 18%)`,
+    "--tint-clay": `color-mix(in srgb, ${c.terracotta} 8%, ${c.bg} 92%)`,
+    "--tint-teal": `color-mix(in srgb, ${c.teal} 8%, ${c.bg} 92%)`,
+    "--tint-blush": `color-mix(in srgb, ${c.terracotta} 6%, ${c.bg} 94%)`,
+    "--tint-fog": c.paper,
   } as unknown as CSSProperties;
 }
 

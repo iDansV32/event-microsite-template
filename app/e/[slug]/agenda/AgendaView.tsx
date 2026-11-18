@@ -1,277 +1,205 @@
-"use client";
-
-import { useState } from "react";
+import { Icon } from "@/components/Icon";
 import { PageHeader } from "@/components/PageHeader";
-import { ImgPh, type ImgPhVariant } from "@/components/ImgPh";
-import type { Day } from "@/lib/schemas";
-import { formatDayNumber } from "@/lib/format";
-
-// Per-day accent + ImgPh variant rotations. Authors can override accent per
-// day via Day.accent; the variant isn't data — it's just the gradient used
-// behind the image while it loads.
-const ACCENTS = ["var(--terracotta)", "var(--olive)", "var(--teal)", "var(--terracotta)"];
-const VARIANTS: ImgPhVariant[] = ["sunset", "palms", "pool", "sand"];
+import type { Day, Session } from "@/lib/schemas";
+import { formatMonthDay } from "@/lib/format";
 
 export function AgendaView({
   days,
   title,
   lede,
   notice,
-  eyebrow,
   cityShort,
 }: {
   days: Day[];
   title?: { main: string; emphasis?: string };
   lede?: string;
   notice?: string;
-  eyebrow: string;
   cityShort: string;
 }) {
-  const [active, setActive] = useState(0);
-
-  const resolvedTitle = title ?? {
-    main: `${dayCountLabel(days.length)} in`,
-    emphasis: `${cityShort}.`,
-  };
+  const resolvedTitle = title
+    ? [title.main, title.emphasis].filter(Boolean).join(" ")
+    : `${dayCountLabel(days.length)} in ${cityShort}`;
   const resolvedLede =
     lede ?? "The program unfolds gently — long mornings, generous afternoons, and evenings together.";
 
   return (
     <div className="page-in">
-      <PageHeader
-        eyebrow={eyebrow}
-        title={
-          <>
-            {resolvedTitle.main}
-            {resolvedTitle.emphasis && (
-              <>
-                <br />
-                <em style={{ fontStyle: "italic" }}>{resolvedTitle.emphasis}</em>
-              </>
-            )}
-          </>
-        }
-        lede={resolvedLede}
-      />
+      <PageHeader eyebrow="Agenda" title={resolvedTitle} lede={resolvedLede} />
 
-      <div className="container-ed">
-        {notice && (
-          <div
-            role="note"
-            style={{
-              display: "flex",
-              alignItems: "flex-start",
-              gap: 14,
-              padding: "18px 22px",
-              background: "color-mix(in srgb, var(--warn) 10%, transparent)",
-              border: "1px solid color-mix(in srgb, var(--warn) 30%, transparent)",
-              borderRadius: 12,
-              marginBottom: 48,
-            }}
-          >
-            <span
-              aria-hidden
-              className="serif"
-              style={{
-                fontSize: 22,
-                color: "var(--warn)",
-                lineHeight: 1,
-                fontStyle: "italic",
-              }}
+      {(notice || days.length > 1) && (
+        <div className="container">
+          {notice && (
+            <div
+              role="note"
+              className="callout callout-note"
+              style={{ marginTop: 32, fontSize: 14, color: "var(--ink-muted)" }}
             >
-              ✦
-            </span>
-            <div style={{ fontSize: 14, lineHeight: 1.55 }}>{notice}</div>
-          </div>
-        )}
+              <Icon name="info" size={18} style={{ marginTop: 1 }} />
+              <span>{notice}</span>
+            </div>
+          )}
 
-        <div
-          role="tablist"
-          aria-label="Agenda day"
-          className="ed-flex agenda-day-tabs"
-          style={{ marginBottom: 48, flexWrap: "wrap", gap: 12 }}
-        >
-          {days.map((d, i) => {
-            const accent = d.accent ?? ACCENTS[i % ACCENTS.length];
-            const on = active === i;
-            return (
-              <button
-                key={d.date}
-                role="tab"
-                id={`agenda-tab-${i}`}
-                aria-selected={on}
-                aria-controls={`agenda-panel-${i}`}
-                onClick={() => setActive(i)}
-                style={{
-                  padding: "14px 24px",
-                  borderRadius: 12,
-                  border: `1px solid ${on ? accent : "var(--ink-12)"}`,
-                  background: on ? accent : "var(--paper)",
-                  color: on ? "var(--bg)" : "var(--ink)",
-                  textAlign: "left",
-                  minWidth: 180,
-                  transition: "all 0.2s",
-                  cursor: "pointer",
-                }}
-              >
-                <div
-                  className="eyebrow"
-                  style={{
-                    color: on ? "rgba(245,240,232,0.75)" : "var(--ink-55)",
-                    fontSize: 10,
-                    marginBottom: 6,
-                  }}
-                >
-                  Day {i + 1} · {d.weekday}
-                </div>
-                <div
-                  className="serif"
-                  style={{ fontSize: 22, fontWeight: 400, letterSpacing: "-0.01em" }}
-                >
-                  {formatMonthDayShort(d.date)}
-                </div>
-              </button>
-            );
-          })}
+          {days.length > 1 && (
+            <nav
+              aria-label="Days"
+              style={{ marginTop: 32, display: "flex", flexWrap: "wrap", gap: 8 }}
+            >
+              {days.map((d, i) => (
+                <a key={d.date} href={`#day-${i + 1}`} className="chip" style={{ gap: 8 }}>
+                  <span style={{ fontWeight: 600 }}>{d.weekday.slice(0, 3)}</span>
+                  <span className="text-muted" style={{ fontWeight: 400 }}>
+                    {formatMonthDayShort(d.date)}
+                  </span>
+                </a>
+              ))}
+            </nav>
+          )}
         </div>
+      )}
 
-        {/* All day panels mount so the aria-controls references on the tab
-            buttons always resolve to real nodes. `hidden` hides inactive
-            panels from both the visual and accessibility trees. */}
-        {days.map((d, i) => {
-          const accent = d.accent ?? ACCENTS[i % ACCENTS.length];
-          const variant = VARIANTS[i % VARIANTS.length];
-          return (
+      <div className="container page-end" style={{ paddingTop: 48 }}>
+        <div className="rows">
+          {days.map((d, i) => (
             <div
               key={d.date}
-              role="tabpanel"
-              id={`agenda-panel-${i}`}
-              aria-labelledby={`agenda-tab-${i}`}
-              hidden={active !== i}
-              className={active === i ? "page-in" : undefined}
+              id={`day-${i + 1}`}
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "16px 48px",
+                padding: "40px 0",
+                scrollMarginTop: 80,
+              }}
             >
               <div
-                className="ed-grid stack-mobile agenda-day-grid"
                 style={{
-                  gridTemplateColumns: "1fr 2fr",
-                  gap: 64,
-                  alignItems: "start",
+                  flex: "1 1 220px",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "flex-start",
+                  gap: 6,
                 }}
               >
-                <div className="agenda-day-intro" style={{ position: "sticky", top: 100 }}>
-                  <div
-                    className="eyebrow"
-                    style={{ color: accent, marginBottom: 12 }}
-                  >
-                    {d.weekday.toUpperCase()} · DAY {i + 1}
+                <div
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: d.accent ?? "var(--accent)",
+                  }}
+                >
+                  Day {i + 1}
+                </div>
+                <h2
+                  style={{
+                    margin: 0,
+                    fontSize: 26,
+                    lineHeight: 1.2,
+                    fontWeight: 600,
+                    letterSpacing: "-0.02em",
+                  }}
+                >
+                  {d.weekday}, {formatMonthDay(d.date)}
+                </h2>
+                {d.mood && (
+                  <div className="text-muted" style={{ fontSize: 15 }}>
+                    {d.mood}
                   </div>
-                  <h2
-                    className="display"
-                    style={{
-                      fontSize: 88,
-                      lineHeight: 0.92,
-                      letterSpacing: "-0.03em",
-                    }}
-                  >
-                    {formatDayNumber(d.date)}
-                    <span style={{ color: accent, fontStyle: "italic" }}>.</span>
-                  </h2>
-                  {d.mood && (
-                    <div
-                      className="serif"
-                      style={{
-                        fontSize: 22,
-                        fontStyle: "italic",
-                        color: "var(--ink-70)",
-                        marginTop: 12,
-                      }}
-                    >
-                      {d.mood}
-                    </div>
-                  )}
-                  {d.image && (
-                    <div style={{ marginTop: 32 }}>
-                      <ImgPh
-                        variant={variant}
-                        src={d.image.src}
-                        alt={d.image.alt}
-                        label={d.image.label}
-                        ratio="4/5"
-                      />
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  {d.sessions.map((s, j) => (
-                    <div
-                      key={j}
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "80px 1fr",
-                        gap: 40,
-                        padding: "28px 0",
-                        borderBottom:
-                          j === d.sessions.length - 1 ? "none" : "1px solid var(--ink-12)",
-                        opacity: s.tbd ? 0.72 : 1,
-                      }}
-                    >
-                      <div>
-                        <div
-                          className="mono"
-                          style={{
-                            fontSize: 13,
-                            color: accent,
-                            letterSpacing: "0.04em",
-                          }}
-                        >
-                          {s.time}
-                        </div>
-                      </div>
-                      <div>
-                        <div
-                          className="ed-flex items-center"
-                          style={{ flexWrap: "wrap", gap: 12 }}
-                        >
-                          <h3
-                            className="serif"
-                            style={{
-                              fontSize: s.featured ? 30 : 24,
-                              fontWeight: 400,
-                              letterSpacing: "-0.01em",
-                              margin: 0,
-                              fontStyle: s.featured ? "italic" : "normal",
-                            }}
-                          >
-                            {s.title}
-                          </h3>
-                          {s.featured && <span className="tag tag-accent">Keynote</span>}
-                          {s.tbd && <span className="tag">TBD</span>}
-                        </div>
-                        {s.detail && (
-                          <p
-                            style={{
-                              fontSize: 15,
-                              lineHeight: 1.6,
-                              color: "var(--ink-70)",
-                              marginTop: 8,
-                              marginBottom: 0,
-                            }}
-                          >
-                            {s.detail}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                )}
               </div>
+
+              <ol
+                role="list"
+                style={{
+                  flex: "999 1 560px",
+                  minWidth: 0,
+                  listStyle: "none",
+                  margin: 0,
+                  padding: 0,
+                }}
+              >
+                {d.sessions.map((s, j) => (
+                  <SessionRow
+                    key={`${s.time}-${j}`}
+                    session={s}
+                    last={j === d.sessions.length - 1}
+                  />
+                ))}
+              </ol>
             </div>
-          );
-        })}
+          ))}
+        </div>
       </div>
     </div>
   );
+}
+
+function SessionRow({ session: s, last }: { session: Session; last: boolean }) {
+  const featured = !!s.featured;
+  return (
+    <li
+      style={{
+        display: "flex",
+        flexWrap: "wrap",
+        gap: "4px 24px",
+        ...(featured
+          ? {
+              padding: 16,
+              margin: "4px -16px",
+              borderRadius: 12,
+              background: "var(--accent-soft)",
+            }
+          : {
+              padding: "16px 0",
+              borderBottom: last ? undefined : "1px solid var(--line)",
+            }),
+      }}
+    >
+      <div
+        className="tabular"
+        style={{
+          flex: "0 0 88px",
+          fontSize: 15,
+          fontWeight: 600,
+          color: featured ? "var(--accent)" : undefined,
+        }}
+      >
+        {formatTime12h(s.time)}
+      </div>
+      <div style={{ flex: "1 1 260px", minWidth: 0 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
+          <h3 className="h3" style={{ fontSize: 17 }}>
+            {s.title}
+          </h3>
+          {featured && <span className="badge badge-solid">Featured</span>}
+          {s.tbd && <span className="badge">Details TBD</span>}
+        </div>
+        {s.detail && (
+          <p className="body" style={{ marginTop: 4 }}>
+            {s.detail}
+          </p>
+        )}
+      </div>
+    </li>
+  );
+}
+
+/**
+ * "18:00" → "6:00 PM". Session times are stored as 24-hour "HH:MM"
+ * strings; ranges ("09:00–10:30") are formatted piecewise. Anything that
+ * doesn't parse is shown exactly as authored.
+ */
+function formatTime12h(time: string): string {
+  const parts = time.split(/\s*[–—-]\s*/);
+  const formatted = parts.map((part) => {
+    const m = /^(\d{1,2}):(\d{2})$/.exec(part.trim());
+    if (!m) return null;
+    const h = Number(m[1]);
+    if (h > 24 || Number(m[2]) > 59) return null;
+    const period = h >= 12 && h < 24 ? "PM" : "AM";
+    return `${h % 12 || 12}:${m[2]} ${period}`;
+  });
+  if (formatted.some((f) => f === null)) return time;
+  return formatted.join("–");
 }
 
 const MONTHS_SHORT = [
@@ -289,7 +217,7 @@ const MONTHS_SHORT = [
   "Dec",
 ];
 
-/** "Jun 1" — used on the day tabs. */
+/** "Jun 1" — used on the day jump links. */
 function formatMonthDayShort(iso: string): string {
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
   if (!m) return iso;
@@ -311,5 +239,5 @@ function dayCountLabel(n: number): string {
     "Ten",
   ];
   const word = words[n] ?? String(n);
-  return `${word} days`;
+  return `${word} ${n === 1 ? "day" : "days"}`;
 }

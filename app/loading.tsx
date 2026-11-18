@@ -10,12 +10,7 @@ export default function Loading() {
       aria-busy="true"
       aria-live="polite"
     >
-      <div
-        className="serif"
-        style={{ color: "var(--ink-70)", fontStyle: "italic" }}
-      >
-        Loading…
-      </div>
+      <div style={{ color: "var(--ink-muted)", fontSize: 15 }}>Loading…</div>
     </main>
   );
 }
